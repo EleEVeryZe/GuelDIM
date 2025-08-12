@@ -13,7 +13,7 @@ import {
 import { Registro } from "../interfaces/interfaces";
 import { ChartData } from "./chartServices";
 
-export default function MyBarChart({ data }: { data: Registro[] }) {
+export default function MyBarChart({ data, setFilteredMonth }: { data: Registro[], setFilteredMonth: any }) {
   const [processedData, setProcessedData] = useState();
   const chartService = useRef(null);
   const [de, setDe] = useState("");
@@ -63,6 +63,10 @@ export default function MyBarChart({ data }: { data: Registro[] }) {
       <ResponsiveContainer width={"100%"} height={300}>
         <BarChart
           data={processedData}
+          onClick={(barChartClickData) => {
+            const actvLabel = barChartClickData.activeLabel;
+            setFilteredMonth(parseInt(barChartClickData.activeLabel.substring(actvLabel.length -2, actvLabel.length)) + "")
+          }}
           margin={{
             top: 5,
             right: 30,

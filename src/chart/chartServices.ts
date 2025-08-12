@@ -59,8 +59,8 @@ export class ChartData {
      * ex: init: 3 meses anteriores e fin: 4 posteriores =>  Se hoje fosse mes 6 iria mostrar no inicio março até outubro
      */
     public setMonthRange = (initMes: number, finMes: number) => {        
-        const initDayJs = dayjs().subtract(initMes, "month");
-        const finDayJs = dayjs().add(finMes, "month");
+        const initDayJs = dayjs().subtract(initMes, "month").startOf("month");
+        const finDayJs = dayjs().add(finMes, "month").endOf("month");
         this.data = this.data.filter(reg => dayjs(reg.dtCorrente).isAfter(initDayJs) && dayjs(reg.dtCorrente).isBefore(finDayJs));
         return this;
     }

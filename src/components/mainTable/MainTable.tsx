@@ -42,6 +42,7 @@ import {
   containsSalario,
   obterPorcentagemDaCompra,
   obterPorcentagemSemanalDaCompra,
+  obterRestante
 } from "../../services/registros/registrosServices";
 import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
@@ -292,7 +293,14 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
   return (
     <div>
-      <MyBarChart data={rows} />
+      <MyBarChart data={rows} setFilteredMonth={(newVlr) => {
+         const newFiltro = {
+              ...filtros,
+              filtro_meses: newVlr,
+            };
+            setFiltros(newFiltro);
+            localStorage.setItem("filtro", JSON.stringify(newFiltro));
+      }}/>
       <Fab
         onClick={() => setShowAddOrUpdateComponent(!showAddOrUpdateComponent)}
         color="primary"
@@ -492,27 +500,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
           <TableBody>
             <TableRow>
               <TableCell>
-                Restante:{" "}
-                {(() => {
-                  const totalSalario = filteredRows
-                    .filter((x) => x.descricao === "Salario")
-                    .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-
-                  const minhasDespesas = parseFloat(
-                    filteredRows
-                      .filter((x) => !containsSalario(x.descricao))
-                      .reduce((a, c) => {
-                        return (parseFloat(a as any) +
-                          parseFloat(
-                            c.valor > 0 ? c.valor : (0 as any)
-                          )) as any;
-                      }, 0)
-                  );
-
-                  const result = -1 * totalSalario - minhasDespesas;
-
-                  return result.toFixed(2);
-                })()}
+                Restante:{obterRestante(filteredRows)}                
               </TableCell>
               <TableCell>
                 A ser investido:{" "}
