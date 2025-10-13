@@ -126,6 +126,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
     const idComum = uuidv4();
     try {
       setIsCallingAPI(true);
+      const dtEfetiva = dayjs().toISOString();
 
       for (let i = 0; i < newRow.qtdParc; i++) {
         if (!newRow.descricao?.length)
@@ -138,8 +139,26 @@ export default function MainTable({ fileId }: { fileId: string }) {
           id: uuidv4(),
           idComum,
           parcelaAtual: i + 1,
-          dtEfetiva: dayjs().toISOString(),
+          dtEfetiva,
         });
+      }
+
+      if (newRow.comentario.indexOf('*') !== -1 && newRow.comentario.indexOf(':') !== -1){
+        const devedores = newRow.comentario.split(',');
+        for (let i = 0; i < devedores.length; i++) {
+          const e = devedores[i];
+          const vlrDivida = e.split(":")[1];
+
+          parsedNewRow.push({
+          ...newRow,
+          valor: parseFloat(vlrDivida) / newRow.qtdParc,
+          dtCorrente: formatDate(newRow.dtCorrente, i),
+          id: uuidv4(),
+          idComum,
+          parcelaAtual: i + 1,
+          dtEfetiva,
+        });
+        }
       }
 
       const newRows = [...rows, newRow];
