@@ -42,7 +42,7 @@ import {
   containsSalario,
   obterPorcentagemDaCompra,
   obterPorcentagemSemanalDaCompra,
-  obterRestante
+  obterRestante,
 } from "../../services/registros/registrosServices";
 import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
@@ -107,7 +107,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
   const [fonteList, setFonteList] = useState<string[]>([]);
   const [isCallingAPI, setIsCallingAPI] = useState(false);
 
-  const [isPaying, setIsPaying] = useState({ loading: false, id: ""} as { loading: boolean, id?: string});
+  const [isPaying, setIsPaying] = useState({ loading: false, id: "" } as {
+    loading: boolean;
+    id?: string;
+  });
 
   const { filtros, setFiltros } = filterModule(
     rows,
@@ -127,39 +130,50 @@ export default function MainTable({ fileId }: { fileId: string }) {
     try {
       setIsCallingAPI(true);
       const dtEfetiva = dayjs().toISOString();
+      let valorTotal = newRow.valor;
 
-      for (let i = 0; i < newRow.qtdParc; i++) {
+      for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++) {
         if (!newRow.descricao?.length)
           throw { message: "Campo descrição não pode estar vazio" };
 
-        parsedNewRow.push({
-          ...newRow,
-          valor: newRow.valor / newRow.qtdParc,
-          dtCorrente: formatDate(newRow.dtCorrente, i),
-          id: uuidv4(),
-          idComum,
-          parcelaAtual: i + 1,
-          dtEfetiva,
-        });
-      }
+        if (
+          newRow.comentario.indexOf("*") !== -1 &&
+          newRow.comentario.indexOf(":") !== -1
+        ) {
+          const devedores = newRow.comentario.replace("*", "").split(",");
+          for (let i = 0; i < devedores.length; i++) {
+            const e = devedores[i];
+            const donoDivida = e.split(":")[0].replaceAll(" ", "");
+            const vlrDivida = parseFloat(e.split(":")[1]);
 
-      if (newRow.comentario.indexOf('*') !== -1 && newRow.comentario.indexOf(':') !== -1){
-        const devedores = newRow.comentario.split(',');
-        for (let i = 0; i < devedores.length; i++) {
-          const e = devedores[i];
-          const vlrDivida = e.split(":")[1];
+            valorTotal = valorTotal - (vlrDivida / newRow.qtdParc);
 
-          parsedNewRow.push({
-          ...newRow,
-          valor: parseFloat(vlrDivida) / newRow.qtdParc,
-          dtCorrente: formatDate(newRow.dtCorrente, i),
-          id: uuidv4(),
-          idComum,
-          parcelaAtual: i + 1,
-          dtEfetiva,
-        });
+            parsedNewRow.push({
+              ...newRow,
+              descricao: donoDivida + ": " + newRow.descricao,
+              valor: -1 * vlrDivida / newRow.qtdParc,
+              dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
+              id: uuidv4(),
+              idComum,
+              parcelaAtual: currentParcela + 1,
+              dtEfetiva,
+            });
+          }
         }
       }
+
+      if (valorTotal > 0) 
+        for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++)
+            parsedNewRow.push({
+              ...newRow,
+              valor: valorTotal / newRow.qtdParc,
+              dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
+              id: uuidv4(),
+              idComum,
+              parcelaAtual: currentParcela + 1,
+              dtEfetiva,
+              comentario: ""
+            });
 
       const newRows = [...rows, newRow];
 
@@ -312,14 +326,17 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
   return (
     <div>
-      <MyBarChart data={rows} setFilteredMonth={(newVlr) => {
-         const newFiltro = {
-              ...filtros,
-              filtro_meses: newVlr,
-            };
-            setFiltros(newFiltro);
-            localStorage.setItem("filtro", JSON.stringify(newFiltro));
-      }}/>
+      <MyBarChart
+        data={rows}
+        setFilteredMonth={(newVlr) => {
+          const newFiltro = {
+            ...filtros,
+            filtro_meses: newVlr,
+          };
+          setFiltros(newFiltro);
+          localStorage.setItem("filtro", JSON.stringify(newFiltro));
+        }}
+      />
       <Fab
         onClick={() => setShowAddOrUpdateComponent(!showAddOrUpdateComponent)}
         color="primary"
@@ -518,9 +535,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
         >
           <TableBody>
             <TableRow>
-              <TableCell>
-                Restante:{obterRestante(filteredRows)}                
-              </TableCell>
+              <TableCell>Restante:{obterRestante(filteredRows)}</TableCell>
               <TableCell>
                 A ser investido:{" "}
                 {(() => {
@@ -703,7 +718,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
                   </TableCell>
                   <TableCell>
                     {isPaying.loading && isPaying.id === row.id ? (
-                      <CircularProgress style={{width: "25px", height: "25px"}}/>
+                      <CircularProgress
+                        style={{ width: "25px", height: "25px" }}
+                      />
                     ) : (
                       <AttachMoneyIcon
                         onClick={() => {

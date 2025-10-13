@@ -28,3 +28,9 @@ jobs:
       - name: Sync next files to S3
         run: |
           aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id EI13840A5U13P \
+            --paths "/*"
