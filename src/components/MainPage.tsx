@@ -24,7 +24,7 @@ const MainPage: React.FC = () => {
         .pop();
       if (!currentFileId) {
         const fileCreated = (await createFile(
-          `financeiro.geldIn`,
+          `financeiro1.geldIn`,
           "[]"
         )) as unknown as { body: string };
         currentFileId = JSON.parse(fileCreated.body).id;

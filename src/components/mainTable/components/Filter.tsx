@@ -13,21 +13,47 @@ const Filter = ({ setFiltros, filtros, fonteList, setModalOpen }) => {
   return (
     <Box className={"bordered"}>
       <Box className={"d-flex"}> 
-        <TextField
-          id="outlined-basic"
-          value={filtros.filtro_meses}
-          placeholder="Mês"
-          className={"flex-1 mr-1"}
-          onChange={(e) => {
-            const newFiltro = {
-              ...filtros,
-              filtro_meses: e.target.value,
-            };
-            setFiltros(newFiltro);
-            localStorage.setItem("filtro", JSON.stringify(newFiltro));
-          }}
-          variant="outlined"
-        />
+         <Select
+              labelId="select-label-ano"
+              id="select-ano"
+              label="Fonte"
+              value={filtros.filtro_ano}
+              defaultValue="2026"
+              onChange={(e) => {
+                const newFiltro = {
+                  ...filtros,
+                  filtro_ano: e.target.value,
+                };
+                setFiltros(newFiltro);
+                localStorage.setItem("filtro", JSON.stringify(newFiltro));
+              }}
+            >
+              <MenuItem value={""}>TODOS</MenuItem>
+              {["2023","2024","2025","2026","2027"].map((ftItem) => (
+                <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              labelId="select-label-mes"
+              id="select-mes"
+              label="Fonte"
+              value={filtros.filtro_meses}
+              defaultValue="1"
+              onChange={(e) => {
+                const newFiltro = {
+                  ...filtros,
+                  filtro_meses: e.target.value,
+                };
+                setFiltros(newFiltro);
+                localStorage.setItem("filtro", JSON.stringify(newFiltro));
+              }}
+            >
+              <MenuItem value={""}>TODOS</MenuItem>
+              {["1","2","3","4","5","6","7","8","9","10","11","12"].map((ftItem) => (
+                <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
+              ))}
+            </Select>
       
         <TextField
           id="outlined-basic"

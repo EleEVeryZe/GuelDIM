@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 
 const filterModule = (registros: Registro[], showPagos: boolean, setRegistros) => {
   const [filtros, setFiltros] = useState<{
+    filtro_ano: string;
     filtro_meses: string;
     filtro_descricao: string;
     filtro_fonte: string;
-  }>({ filtro_meses: "", filtro_fonte: "", filtro_descricao: "" });
+  }>({ filtro_meses: "", filtro_fonte: "", filtro_descricao: "", filtro_ano: "" });
 
   const filterByMonths = () => {
     if (filtros.filtro_meses)
@@ -15,7 +16,7 @@ const filterModule = (registros: Registro[], showPagos: boolean, setRegistros) =
         const aux = dayjs(dtCorrente).month();
         return (
           filtros.filtro_meses.split(";").indexOf(aux + 1 + "") !== -1 &&
-          dayjs().year() === dayjs(dtCorrente).year()
+          dayjs(filtros.filtro_ano).year() === dayjs(dtCorrente).year()
         );
       });
 
@@ -25,10 +26,14 @@ const filterModule = (registros: Registro[], showPagos: boolean, setRegistros) =
   const filterByDescricao = (filtered: Registro[]) => {
     if (filtros.filtro_descricao)
       return (Object.keys(filtered).length ? filtered : registros).filter(
-        ({ descricao, comentario }) => {
-          const byDescricao = descricao.toLowerCase().indexOf(filtros.filtro_descricao.toLowerCase()) !== -1
-          const byComentario = comentario.toLowerCase().indexOf(filtros.filtro_descricao.toLowerCase()) !== -1
-          return byDescricao || byComentario;
+        ({ descricao }) => {
+          let byDescricao = descricao.toLowerCase().indexOf(filtros.filtro_descricao.toLowerCase()) !== -1
+
+          if (filtros.filtro_descricao.indexOf("*") !== -1) {
+            byDescricao = descricao.indexOf(":") === -1 && descricao.toLowerCase().indexOf(filtros.filtro_descricao.replaceAll("*", "").toLowerCase()) !== -1;
+          }
+            
+          return byDescricao;
         }
       );
 
