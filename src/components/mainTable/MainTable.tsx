@@ -163,7 +163,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
         }
       }
 
-      if (valorTotal > 0 || newRow.descricao.indexOf(":") !== -1) 
+      if (valorTotal > 0 || newRow.descricao.indexOf(":") !== -1 || newRow.descricao.toLowerCase().indexOf("salario") !== -1) 
         for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++)
             parsedNewRow.push({
               ...newRow,
@@ -175,6 +175,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
               dtEfetiva,
               comentario: ""
             });
+
 
       const newRows = [...rows, newRow];
 
