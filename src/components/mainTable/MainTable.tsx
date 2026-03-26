@@ -19,6 +19,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableHead,
   TableRow,
   TextField,
   ToggleButton,
@@ -32,18 +33,13 @@ import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
-import {
-  add as addRegistro,
-  readFileContent,
-  remove,
-  update,
-} from "../../services/persistence/persist";
+import { useRegistro } from "../../context/RegistroContext";
 import {
   containsSalario,
   obterPorcentagemDaCompra,
   obterPorcentagemSemanalDaCompra,
   obterRestante,
-} from "../../services/registros/registrosServices";
+} from "../../domain/services/FinanceService";
 import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
 import filterModule from "./components/Filter.module";
@@ -78,6 +74,7 @@ function createData(
 const initialRows = [] as Registro[];
 
 export default function MainTable({ fileId }: { fileId: string }) {
+  const { useCase } = useRegistro();
   const [selectedItems, setSelectedItems] = useState([] as string[]);
   const [showPagos, setShowPagos] = useState(true);
   const [pagarRegistrosFiltrados, setPagarRegistrosFiltrados] = useState(false);
@@ -247,7 +244,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
   const getPersisted = async () => {
     setIsLoading(true);
     try {
-      const rows = await readFileContent(fileId);
+      const rows = await useCase.getAll(fileId);
       setRows(rows);
       setFilteredRows(rows);
     } catch (err) {
@@ -258,15 +255,19 @@ export default function MainTable({ fileId }: { fileId: string }) {
   };
 
   const persist = async (toBePersisted: Registro, method = "POST") => {
-    await update(fileId, [toBePersisted]);
+    if (method === "PUT") {
+      await useCase.update(fileId, [toBePersisted]);
+    } else {
+      await useCase.add(fileId, [toBePersisted]);
+    }
   };
 
-  const persistInBulk = async (toBePersisted: Registro[], method = "POST") => {
-    await addRegistro(fileId, toBePersisted);
+  const persistInBulk = async (toBePersisted: Registro[]) => {
+    await useCase.add(fileId, toBePersisted);
   };
 
   const deleteRow = async (id: string) => {
-    await remove(fileId, id);
+    await useCase.remove(fileId, id);
   };
 
   const insertOrRemoveSelectedItems = (isInsert: boolean, items: string[]) => {
@@ -290,7 +291,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
           )
           .map((filtered) => ({ ...filtered, ehPago: isPagar }));
 
-        await update(fileId, modifiedItems);
+        await useCase.update(fileId, modifiedItems);
         setFilteredRows(
           filteredRows.map((filtered) =>
             selectedItems.indexOf(filtered.id) !== -1
@@ -302,10 +303,11 @@ export default function MainTable({ fileId }: { fileId: string }) {
       };
 
       const executarIndividual = async () => {
-        await update(fileId, [{ ...row, ehPago: !!!row.ehPago }]);
+        const updatedRow = { ...row, ehPago: !row.ehPago };
+        await useCase.update(fileId, [updatedRow]);
         setFilteredRows(
           filteredRows.map((filtered) =>
-            filtered.id != row.id ? filtered : { ...row, ehPago: !!!row.ehPago }
+            filtered.id !== row.id ? filtered : updatedRow
           )
         );
       };
@@ -529,14 +531,42 @@ export default function MainTable({ fileId }: { fileId: string }) {
       ) : (
         ""
       )}
-      <TableContainer component={Paper}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          maxHeight: "68vh",
+          overflow: "auto",
+          borderRadius: "12px",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+        }}
+      >
         <Table
           size="small"
-          sx={{ "-webkit-overflow-scrolling": "touch", overflow: "auto" }}
+          stickyHeader
+          sx={{
+            "-webkit-overflow-scrolling": "touch",
+            overflow: "auto",
+            minWidth: 1100,
+          }}
           aria-label="simple table"
         >
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "#1976d2" }}>
+              <TableCell sx={{ color: "#fff", width: 48, minWidth: 48, textAlign: "center" }}>Sel</TableCell>
+              <TableCell sx={{ color: "#fff", width: 100, minWidth: 100 }}>Data</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Descrição</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Valor</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Fonte</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Categoria</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Parcela</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Comentário</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Editar</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Pago</TableCell>
+              <TableCell sx={{ color: "#fff" }}>Remover</TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
-            <TableRow>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell>Restante:{obterRestante(filteredRows)}</TableCell>
               <TableCell>
                 A ser investido:{" "}
@@ -631,17 +661,19 @@ export default function MainTable({ fileId }: { fileId: string }) {
                   key={row.id}
                   sx={{
                     "&:last-child td, &:last-child th": { border: 0 },
-                    background: row.ehPago ? "#00800038" : "white",
+                    background: row.ehPago ? "#00800038" : "#ffffff",
+                    '&:nth-of-type(odd)': {
+                      backgroundColor: row.ehPago ? "#00800038" : "#fafafa",
+                    },
                   }}
                 >
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: "0 4px", minWidth: 48, width: 48, textAlign: "center" }}>
                     <Checkbox
                       onChange={(event) =>
-                        insertOrRemoveSelectedItems(event.target.checked, [
-                          row.id,
-                        ])
+                        insertOrRemoveSelectedItems(event.target.checked, [row.id])
                       }
                       checked={selectedItems.indexOf(row.id) !== -1}
+                      size="small"
                     />
                   </TableCell>
                   <TableCell style={{ padding: 0, width: "100%" }}>

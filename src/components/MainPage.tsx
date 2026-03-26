@@ -1,11 +1,12 @@
 // src/components/MainPage.tsx
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { createFile, listFiles } from "../services/googleApi";
+import { useRegistro } from "../context/RegistroContext";
 import Apresentacao from "./apresentacao/apresentacao";
 import MainTable from "./mainTable/MainTable";
 const MainPage: React.FC = () => {
   const { isSignedIn, signIn, signOut } = useContext(AuthContext);
+  const { useCase } = useRegistro();
   const [loading, setLoading] = useState<boolean>(false);
   const [fileId, setFileId] = useState<string>();
 
@@ -16,22 +17,10 @@ const MainPage: React.FC = () => {
   const fetchFiles = async () => {
     setLoading(true);
     try {
-      let currentFileId;
-      const apiFiles = await listFiles();
-      currentFileId = apiFiles
-        .filter(({ name }) => name === "financeiro.geldIn")
-        .map(({ id }) => id)
-        .pop();
-      if (!currentFileId) {
-        const fileCreated = (await createFile(
-          `financeiro1.geldIn`,
-          "[]"
-        )) as unknown as { body: string };
-        currentFileId = JSON.parse(fileCreated.body).id;
-      }
+      const currentFileId = await useCase.createOrOpenDataFile();
       setFileId(currentFileId);
     } catch (error) {
-      console.error("Error fetching files:", error);
+      console.error("Error fetching or creating file:", error);
     } finally {
       setLoading(false);
     }
