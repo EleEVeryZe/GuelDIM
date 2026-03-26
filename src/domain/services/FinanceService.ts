@@ -1,4 +1,5 @@
 import { Registro } from "../entities/Registro";
+import moment from 'moment';
 
 export const containsSalario = (descricao: string): boolean => {
   const descr = descricao?.toLowerCase().trim();
@@ -41,7 +42,6 @@ export const obterPorcentagemDaCompra = (compra: Registro, data: Registro[]): st
 };
 
 export const obterPorcentagemSemanalDaCompra = (compra: Registro, data: Registro[]): string => {
-  const moment = require("moment");
   const endOfMonth = Number(moment().endOf("month").format("DD"));
   const today = Number(moment().format("DD"));
   const semanasFaltantesDoMes = Math.max(Math.ceil((endOfMonth - today) / 7), 1);

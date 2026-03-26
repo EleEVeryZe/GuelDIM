@@ -551,111 +551,73 @@ export default function MainTable({ fileId }: { fileId: string }) {
           aria-label="simple table"
         >
           <TableHead>
-            <TableRow sx={{ backgroundColor: "#1976d2" }}>
-              <TableCell sx={{ color: "#fff", width: 48, minWidth: 48, textAlign: "center" }}>Sel</TableCell>
-              <TableCell sx={{ color: "#fff", width: 100, minWidth: 100 }}>Data</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Descrição</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Valor</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Fonte</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Categoria</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Parcela</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Comentário</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Editar</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Pago</TableCell>
-              <TableCell sx={{ color: "#fff" }}>Remover</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
             <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell>Restante:{obterRestante(filteredRows)}</TableCell>
-              <TableCell>
-                A ser investido:{" "}
-                {(() => {
-                  const totalSalario = filteredRows
-                    .filter((x) => containsSalario(x.descricao))
-                    .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-
-                  const result = -1 * (0.2 * totalSalario);
-                  return result.toFixed(2);
-                })()}
-              </TableCell>
-              <TableCell>
-                Restante - Invest:{" "}
-                {(() => {
-                  const totalSalario = filteredRows
-                    .filter((x) => containsSalario(x.descricao))
-                    .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-
-                  const totalInvestimento = -1 * (0.2 * totalSalario);
-
-                  const minhasDespesas = parseFloat(
+              <TableCell colSpan={11}>
+                <Box display="flex" justifyContent="space-around" flexWrap="wrap">
+                  <span>Restante: {obterRestante(filteredRows)}</span>
+                  <span>A ser investido: {(() => {
+                    const totalSalario = filteredRows
+                      .filter((x) => containsSalario(x.descricao))
+                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                    const result = -1 * (0.2 * totalSalario);
+                    return result.toFixed(2);
+                  })()}</span>
+                  <span>Restante - Invest: {(() => {
+                    const totalSalario = filteredRows
+                      .filter((x) => containsSalario(x.descricao))
+                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                    const totalInvestimento = -1 * (0.2 * totalSalario);
+                    const minhasDespesas = parseFloat(
+                      filteredRows
+                        .filter((x) => !containsSalario(x.descricao))
+                        .reduce((a, c) => {
+                          return (parseFloat(a as any) +
+                            parseFloat(
+                              c.valor > 0 ? c.valor : (0 as any)
+                            )) as any;
+                        }, 0)
+                    );
+                    const result =
+                      -1 * totalSalario - minhasDespesas - totalInvestimento;
+                    return result.toFixed(2);
+                  })()}</span>
+                  <span>Minhas despesas: {parseFloat(
                     filteredRows
                       .filter((x) => !containsSalario(x.descricao))
                       .reduce((a, c) => {
                         return (parseFloat(a as any) +
-                          parseFloat(
-                            c.valor > 0 ? c.valor : (0 as any)
-                          )) as any;
+                          parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
                       }, 0)
-                  );
-
-                  const result =
-                    -1 * totalSalario - minhasDespesas - totalInvestimento;
-
-                  return result.toFixed(2);
-                })()}
+                  ).toFixed(2)}</span>
+                  <span>Salário: {(() => {
+                    const totalSalario = filteredRows
+                      .filter((x) => containsSalario(x.descricao))
+                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                    const result = -1 * totalSalario;
+                    return result.toFixed(2);
+                  })()}</span>
+                  <span>Total: {parseFloat(
+                    filteredRows
+                      .filter((x) => !containsSalario(x.descricao))
+                      .reduce((a, c) => {
+                        return (parseFloat(a as any) +
+                          parseFloat(c.valor as any)) as any;
+                      }, 0)
+                  ).toFixed(2)}</span>
+                  <span>Soma: {parseFloat(
+                    filteredRows
+                      .filter((x) => !containsSalario(x.descricao))
+                      .reduce((a, c) => {
+                        return (parseFloat(a as any) +
+                          Math.abs(parseFloat(c.valor as any))) as any;
+                      }, 0)
+                  ).toFixed(2)}</span>
+                </Box>
               </TableCell>
-              <TableCell>
-                Minhas despezas:{" "}
-                {parseFloat(
-                  filteredRows
-                    .filter((x) => !containsSalario(x.descricao))
-                    .reduce((a, c) => {
-                      return (parseFloat(a as any) +
-                        parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
-                    }, 0)
-                ).toFixed(2)}
-              </TableCell>
-
-              <TableCell>
-                Sálario:{" "}
-                {(() => {
-                  const totalSalario = filteredRows
-                    .filter((x) => containsSalario(x.descricao))
-                    .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-
-                  const result = -1 * totalSalario;
-                  return result.toFixed(2);
-                })()}
-              </TableCell>
-              <TableCell>
-                Total:{" "}
-                {parseFloat(
-                  filteredRows
-                    .filter((x) => !containsSalario(x.descricao))
-                    .reduce((a, c) => {
-                      return (parseFloat(a as any) +
-                        parseFloat(c.valor as any)) as any;
-                    }, 0)
-                ).toFixed(2)}
-              </TableCell>
-              <TableCell>
-                Soma:{" "}
-                {parseFloat(
-                  filteredRows
-                    .filter((x) => !containsSalario(x.descricao))
-                    .reduce((a, c) => {
-                      return (parseFloat(a as any) +
-                        Math.abs(parseFloat(c.valor as any))) as any;
-                    }, 0)
-                ).toFixed(2)}
-              </TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
-              <TableCell></TableCell>
             </TableRow>
-            {filteredRows &&
+          </TableHead>
+          <TableBody>
+                        {filteredRows &&
               filteredRows.map((row) => (
                 <TableRow
                   key={row.id}
