@@ -21,6 +21,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
+  Tab,
   TextField,
   ToggleButton,
 } from "@mui/material";
@@ -34,6 +36,8 @@ import { v4 as uuidv4 } from "uuid";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
+import { GoogleDriveInvestmentRepository } from "../../adapters/drive/GoogleDriveInvestmentRepository";
+import { InvestmentUseCase } from "../../domain/usecases/InvestmentUseCase";
 import {
   containsSalario,
   obterPorcentagemDaCompra,
@@ -44,6 +48,7 @@ import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
 import filterModule from "./components/Filter.module";
 import "./components/filter.css";
+import InvestmentTable from "./InvestmentTable";
 
 function createData(
   id: string,
@@ -108,6 +113,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
     loading: boolean;
     id?: string;
   });
+
+  const [currentTab, setCurrentTab] = useState(0);
+  const [investmentFileId, setInvestmentFileId] = useState("");
 
   const { filtros, setFiltros } = filterModule(
     rows,
@@ -247,6 +255,12 @@ export default function MainTable({ fileId }: { fileId: string }) {
       const rows = await useCase.getAll(fileId);
       setRows(rows);
       setFilteredRows(rows);
+
+      // Load investment fileId
+      const investmentRepository = new GoogleDriveInvestmentRepository();
+      const investmentUseCase = new InvestmentUseCase(investmentRepository);
+      const invFileId = await investmentUseCase.createOrOpenInvestmentFile();
+      setInvestmentFileId(invFileId);
     } catch (err) {
       alert(JSON.stringify(err));
     } finally {
@@ -330,22 +344,29 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
   return (
     <div>
-      <MyBarChart
-        data={rows}
-        setFilteredMonth={(newVlr) => {
-          const newFiltro = {
-            ...filtros,
-            filtro_meses: newVlr,
-          };
-          setFiltros(newFiltro);
-          localStorage.setItem("filtro", JSON.stringify(newFiltro));
-        }}
-      />
-      <Fab
-        onClick={() => setShowAddOrUpdateComponent(!showAddOrUpdateComponent)}
-        color="primary"
-        aria-label="add"
-        style={{
+      <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+        <Tab label="Registros" />
+        <Tab label="Investimentos" />
+      </Tabs>
+
+      {currentTab === 0 && (
+        <>
+          <MyBarChart
+            data={rows}
+            setFilteredMonth={(newVlr) => {
+              const newFiltro = {
+                ...filtros,
+                filtro_meses: newVlr,
+              };
+              setFiltros(newFiltro);
+              localStorage.setItem("filtro", JSON.stringify(newFiltro));
+            }}
+          />
+          <Fab
+            onClick={() => setShowAddOrUpdateComponent(!showAddOrUpdateComponent)}
+            color="primary"
+            aria-label="add"
+            style={{
           position: "fixed",
           bottom: 20,
           right: 20,
@@ -638,7 +659,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: 0, width: 100 }}>
                     {getEditableComponent(
                       row,
                       "dtCorrente",
@@ -646,13 +667,13 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       "data"
                     )}
                   </TableCell>
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: 0, width: 300 }}>
                     {getEditableComponent(row, "descricao", "descricao")}
                   </TableCell>
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: 0, width: 100 }}>
                     {getEditableComponent(row, "Valor", "valor", "number")}
                   </TableCell>
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: 0, width: 120 }}>
                     {editRow === row.id ? (
                       <FormControl
                         sx={{ minWidth: 100, width: "100%" }}
@@ -690,19 +711,19 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       getEditableComponent(row, "Fonte", "fonte")
                     )}
                   </TableCell>
-                  <TableCell style={{ padding: 0, width: "100%" }}>
+                  <TableCell style={{ padding: 0, width: 120 }}>
                     {getEditableComponent(row, "Categoria", "categoria")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: 80 }}>
                     {editRow !== row.id &&
                       row.parcelaAtual &&
                       row.parcelaAtual + "/"}
                     {getEditableComponent(row, "qtdParc", "qtdParc")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: 200 }}>
                     {getEditableComponent(row, "Comentário", "comentario")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: 40 }}>
                     <ModeEditIcon
                       onClick={() => {
                         if (editRow === row.id) {
@@ -712,7 +733,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       }}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell style={{ width: 40 }}>
                     {isPaying.loading && isPaying.id === row.id ? (
                       <CircularProgress
                         style={{ width: "25px", height: "25px" }}
@@ -726,7 +747,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
                     )}
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell style={{ width: 40 }}>
                     <CloseIcon
                       onClick={() => {
                         deleteRow(row.id);
@@ -747,6 +768,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
         outsideFonteList={fonteList}
         setOutsideFonteList={setFonteList}
       />
+        </>
+      )}
+
+      {currentTab === 1 && investmentFileId && <InvestmentTable fileId={investmentFileId} />}
     </div>
   );
 }

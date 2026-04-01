@@ -15,6 +15,24 @@ export interface Registro {
     dtEfetiva?: string
 }
 
+export interface Investment {
+    id: string;
+    name: string;
+    total: number;
+    date: Dayjs;
+    category?: string;
+    comment?: string;
+}
+
+export interface InvestmentOperation {
+    id: string;
+    investmentId: string;
+    amount: number;
+    date: Dayjs;
+    type: 'deposit' | 'withdraw';
+    comment?: string;
+}
+
 export interface ChartData {
     
 }
