@@ -256,7 +256,6 @@ export default function MainTable({ fileId }: { fileId: string }) {
       setRows(rows);
       setFilteredRows(rows);
 
-      // Load investment fileId
       const investmentRepository = new GoogleDriveInvestmentRepository();
       const investmentUseCase = new InvestmentUseCase(investmentRepository);
       const invFileId = await investmentUseCase.createOrOpenInvestmentFile();

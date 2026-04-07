@@ -1,5 +1,6 @@
 import { RegistroRepository } from "../repositories/RegistroRepository";
 import { Registro } from "../entities/Registro";
+import data from './data.json';
 
 export class RegistroUseCase {
   constructor(private repository: RegistroRepository) {}
@@ -29,7 +30,7 @@ export class RegistroUseCase {
       return dataFile.id;
     }
 
-    const created = await this.repository.createFile("financeiro1.geldIn", "[]");
+    const created = await this.repository.createFile("financeiro.geldIn", JSON.stringify(data));
     return created.id;
   }
 }

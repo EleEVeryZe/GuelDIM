@@ -28,12 +28,15 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
   }
 
   async update(fileId: string, registros: Registro[]): Promise<void> {
+    const existing = await this.getAll(fileId);
+    const filtered = existing.filter(reg => reg.id != registros.at(0).id);
+    const merged = [...filtered, ...registros];
     await gapi.client.request({
       path: `/upload/drive/v3/files/${fileId}`,
       method: "PATCH",
       params: { uploadType: "media" },
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(registros),
+      body: JSON.stringify(merged),
     });
   }
 
