@@ -3,6 +3,7 @@ import { Registro } from "../entities/Registro";
 import data from './data.json';
 
 export class RegistroUseCase {
+  fileName = 'financeiro080420261.geldIn';
   constructor(private repository: RegistroRepository) {}
 
   async getAll(fileId: string): Promise<Registro[]> {
@@ -24,13 +25,13 @@ export class RegistroUseCase {
   async createOrOpenDataFile(): Promise<string> {
     const files = await this.repository.listFiles();
 
-    const dataFile = files.find((file) => file.name === "financeiro.geldIn" || file.name === "financeiro1.geldIn");
+    const dataFile = files.find((file) => file.name === this.fileName);
 
     if (dataFile?.id) {
       return dataFile.id;
     }
 
-    const created = await this.repository.createFile("financeiro.geldIn", JSON.stringify(data));
+    const created = await this.repository.createFile(this.fileName, JSON.stringify(data));
     return created.id;
   }
 }

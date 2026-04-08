@@ -182,11 +182,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
             });
 
 
-      const newRows = [...rows, newRow];
-
+      const newRows = [...rows, ...parsedNewRow];
       await persistInBulk(parsedNewRow);
       setRows(newRows);
-      setFilteredRows([...parsedNewRow, ...filteredRows]);
       setShowAddOrUpdateComponent(false);
     } catch (err) {
       alert(
@@ -639,10 +637,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
           </TableHead>
           <TableBody>
                         {filteredRows &&
-              filteredRows.map((row) => (
+              filteredRows.map((row, idx) => (
                 
                 <TableRow
-                  //key={row.id}
+                  key={idx}
                   sx={{
                     "&:last-child td, &:last-child th": { border: 0 },
                     background: row.ehPago ? "#00800038" : "#ffffff",
