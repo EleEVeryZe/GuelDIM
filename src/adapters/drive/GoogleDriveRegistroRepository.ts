@@ -4,19 +4,21 @@ import { Registro } from "../../domain/entities/Registro";
 
 export class GoogleDriveRegistroRepository implements RegistroRepository {
   async getAll(fileId: string): Promise<Registro[]> {
-    const response = await gapi.client.drive.files.get({
-      fileId,
-      alt: "media",
-    });
-
-    if (!response.body || response.body.length === 0) {
-      return [];
-    }
 
     try {
+      const response = await gapi.client.drive.files.get({
+        fileId,
+        alt: "media",
+      });
+
+      if (!response.body || response.body.length === 0) {
+        return [];
+      }
+
       return JSON.parse(response.body) as Registro[];
     } catch (error) {
-      console.error("Invalid JSON from Drive", error);
+      console.error("Error while retrieving data from Google Drive", error);
+      alert("Não foi possível obter arquivo")
       return [];
     }
   }

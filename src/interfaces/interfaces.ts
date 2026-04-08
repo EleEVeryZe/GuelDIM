@@ -12,7 +12,7 @@ export interface Registro {
     parcelaAtual: number;
     comentario: string;
     ehPago: boolean;
-    dtEfetiva?: string
+    dtEfetiva?: string;
 }
 
 export interface Investment {

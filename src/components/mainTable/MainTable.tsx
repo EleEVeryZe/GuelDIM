@@ -186,7 +186,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
       await persistInBulk(parsedNewRow);
       setRows(newRows);
-      setFilteredRows([...filteredRows, ...parsedNewRow]);
+      setFilteredRows([...parsedNewRow, ...filteredRows]);
       setShowAddOrUpdateComponent(false);
     } catch (err) {
       alert(
@@ -253,8 +253,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
     setIsLoading(true);
     try {
       const rows = await useCase.getAll(fileId);
+      if (!rows || rows.length == 0) return;
+
       setRows(rows);
-      setFilteredRows(rows);
 
       const investmentRepository = new GoogleDriveInvestmentRepository();
       const investmentUseCase = new InvestmentUseCase(investmentRepository);
@@ -338,8 +339,8 @@ export default function MainTable({ fileId }: { fileId: string }) {
   };
 
   useEffect(() => {
-    console.log(selectedItems);
-  }, [selectedItems]);
+    console.log(filteredRows);
+  }, [filteredRows]);
 
   return (
     <div>
@@ -639,8 +640,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
           <TableBody>
                         {filteredRows &&
               filteredRows.map((row) => (
+                
                 <TableRow
-                  key={row.id}
+                  //key={row.id}
                   sx={{
                     "&:last-child td, &:last-child th": { border: 0 },
                     background: row.ehPago ? "#00800038" : "#ffffff",
@@ -649,6 +651,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
                     },
                   }}
                 >
+                  
                   <TableCell style={{ padding: "0 4px", minWidth: 48, width: 48, textAlign: "center" }}>
                     <Checkbox
                       onChange={(event) =>
@@ -757,7 +760,9 @@ export default function MainTable({ fileId }: { fileId: string }) {
                     />
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+              
+              }
           </TableBody>
         </Table>
       </TableContainer>

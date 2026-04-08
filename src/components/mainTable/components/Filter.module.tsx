@@ -1,87 +1,63 @@
 import { Registro } from "@/src/interfaces/interfaces";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const filterModule = (registros: Registro[], showPagos: boolean, setRegistros) => {
-  const [filtros, setFiltros] = useState<{
-    filtro_ano: string;
-    filtro_meses: string;
-    filtro_descricao: string;
-    filtro_fonte: string;
-  }>({ filtro_meses: "", filtro_fonte: "", filtro_descricao: "", filtro_ano: "" });
+const filterModule = (registros: Registro[], showPagos: boolean, setRegistros: (data: Registro[]) => void) => {
+  const [filtros, setFiltros] = useState({
+    filtro_ano: dayjs().format("YYYY"), // Initialize with current year
+    filtro_meses: "",
+    filtro_descricao: "",
+    filtro_fonte: "",
+  });
 
-  const filterByMonths = () => {
-    if (filtros.filtro_meses)
-      return registros.filter(({ dtCorrente }) => {
-        const aux = dayjs(dtCorrente).month();
-        return (
-          filtros.filtro_meses.split(";").indexOf(aux + 1 + "") !== -1 &&
-          dayjs(filtros.filtro_ano).year() === dayjs(dtCorrente).year()
-        );
+  const filteredData = useMemo(() => {
+    if (!registros || registros.length === 0) return [];
+
+    let result = [...registros];
+
+    if (filtros.filtro_meses) {
+      const selectedMonths = filtros.filtro_meses.split(";");
+      const targetYear = dayjs(filtros.filtro_ano).year();
+      
+      result = result.filter(({ dtCorrente }) => {
+        const date = dayjs(dtCorrente);
+        return selectedMonths.includes(String(date.month() + 1)) && date.year() === targetYear;
       });
+    }
 
-    return registros;
-  };
+    if (filtros.filtro_descricao) {
+      const term = filtros.filtro_descricao.toLowerCase();
+      const isWildcard = term.includes("*");
+      const cleanTerm = term.replace("*", "");
 
-  const filterByDescricao = (filtered: Registro[]) => {
-    if (filtros.filtro_descricao)
-      return (Object.keys(filtered).length ? filtered : registros).filter(
-        ({ descricao }) => {
-          let byDescricao = descricao.toLowerCase().indexOf(filtros.filtro_descricao.toLowerCase()) !== -1
-
-          if (filtros.filtro_descricao.indexOf("*") !== -1) {
-            byDescricao = descricao.indexOf(":") === -1 && descricao.toLowerCase().indexOf(filtros.filtro_descricao.replaceAll("*", "").toLowerCase()) !== -1;
-          }
-            
-          return byDescricao;
+      result = result.filter(({ descricao }) => {
+        const descLower = descricao.toLowerCase();
+        if (isWildcard) {
+          return !descricao.includes(":") && descLower.includes(cleanTerm);
         }
-      );
+        return descLower.includes(term);
+      });
+    }
 
-    return filtered;
-  };
+    if (filtros.filtro_fonte) {
+      const term = filtros.filtro_fonte.toLowerCase();
+      result = result.filter(({ fonte }) => fonte.toLowerCase().includes(term));
+    }
 
-  const filterByFonte = (filtered: Registro[]) => {
-    if (filtros.filtro_fonte)
-      filtered = (Object.keys(filtered).length ? filtered : registros).filter(
-        ({ fonte }) => {
-          return (
-            fonte.toLowerCase().indexOf(filtros.filtro_fonte.toLowerCase()) !==
-            -1
-          );
-        }
-      );
+    if (!showPagos) {
+      result = result.filter(({ ehPago }) => !ehPago);
+    }
 
-    return filtered;
-  };
-
-  const filterEhPago = (filtered: Registro[]) => {
-    if (!showPagos)
-      filtered = (Object.keys(filtered).length ? filtered : registros).filter(
-        ({ ehPago }) => {
-          return ehPago === false || !ehPago;
-        }
-      );
-
-    return filtered;
-  };
-
-  const sort = (data: Registro[]) => {
-    return data.toSorted((a, b) => {
-      if (!b.dtCorrente || a.dtCorrente) return 1;
-      if (a.dtCorrente?.valueOf() < b.dtCorrente.valueOf()) return -1;
-      if (a.dtCorrente?.valueOf() > b.dtCorrente.valueOf()) return 1;
-      return 0;
+    return result.sort((a, b) => {
+      const valA = a.dtCorrente?.valueOf() || 0;
+      const valB = b.dtCorrente?.valueOf() || 0;
+      return valA - valB;
     });
-  };
+  }, [registros, filtros, showPagos]);
 
   useEffect(() => {
-    let filtered = filterByMonths();
-    filtered = filterByDescricao(filtered);
-    filtered = filterByFonte(filtered);
-    filtered = filterEhPago(filtered);
-
-    setRegistros(sort(filtered));
-  }, [filtros, showPagos]);
+    setRegistros(filteredData);
+  }, [filteredData, setRegistros]);
 
   return { filtros, setFiltros };
 };
