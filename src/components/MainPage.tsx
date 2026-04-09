@@ -4,8 +4,10 @@ import { AuthContext } from "../context/AuthContext";
 import { useRegistro } from "../context/RegistroContext";
 import Apresentacao from "./apresentacao/apresentacao";
 import MainTable from "./mainTable/MainTable";
+import { Box, CircularProgress, Typography } from "@mui/material";
+
 const MainPage: React.FC = () => {
-  const { isSignedIn, signIn, signOut } = useContext(AuthContext);
+  const { loadingAuth, isSignedIn, signIn, signOut } = useContext(AuthContext);
   const { useCase } = useRegistro();
   const [loading, setLoading] = useState<boolean>(false);
   const [fileId, setFileId] = useState<string>();
@@ -26,7 +28,24 @@ const MainPage: React.FC = () => {
     }
   };
 
-  if (loading) return "Obtendo arquivo...";
+  if (loading)
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          gap: 2 
+        }}
+      >
+        <CircularProgress color="primary" size={60} thickness={4} />
+        <Typography variant="body1" color="textSecondary">
+          Obtendo arquivo
+        </Typography>
+      </Box>
+    );
 
   return (
     <section>
@@ -44,7 +63,7 @@ const MainPage: React.FC = () => {
           {fileId && <MainTable fileId={fileId} />}
         </section>
       ) : (
-        <Apresentacao />
+        <Apresentacao loadingAuth={loadingAuth}/>
       )}
     </section>
   );
