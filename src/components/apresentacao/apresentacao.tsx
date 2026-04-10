@@ -6,44 +6,65 @@ const Apresentacao = ({ loadingAuth }: { loadingAuth: boolean }) => {
     const { signIn } = useContext(AuthContext);
 
     return (
-        <Container maxWidth="md" sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Paper elevation={3} sx={{ p: 4, width: '100%', textAlign: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+        <Container
+            maxWidth="sm"
+            sx={{
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                px: 2,
+            }}
+        >
+            <Paper
+                elevation={3}
+                sx={{
+                    width: '100%',
+                    height: '100%',
+                    maxHeight: 'calc(100vh - 32px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    p: { xs: 3, sm: 4 },
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    overflow: 'hidden',
+                }}
+            >
+                <Box>
+                    <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 1 }}>
                         GeldIn
                     </Typography>
-                    <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                    <Typography variant="subtitle1" sx={{ opacity: 0.9, mb: 3 }}>
                         Controle financeiro inteligente na nuvem
                     </Typography>
-                </Box>
 
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', lineHeight: 1.6 }}>
+                    <Typography variant="body1" paragraph sx={{ fontSize: '1rem', lineHeight: 1.6, mb: 2 }}>
                         Transforme sua gestão financeira com uma planilha inteligente que vai além do Excel.
                         Acompanhe receitas, despesas e investimentos em tempo real, com relatórios visuais
                         e insights personalizados para tomar decisões mais acertadas.
                     </Typography>
-                    <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem', lineHeight: 1.6 }}>
+                    <Typography variant="body1" paragraph sx={{ fontSize: '1rem', lineHeight: 1.6 }}>
                         Seja você um profissional liberal, empresário ou estudante, o GeldIn se adapta
                         ao seu estilo de vida e ajuda você a alcançar seus objetivos financeiros.
                     </Typography>
                 </Box>
 
-                <Box sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Button
                         variant="contained"
                         size="large"
                         onClick={signIn}
-                        title='Isso irá criar um arquivo financeiro.gueldin na sua pasta do Google Drive'
+                        title="Isso irá criar um arquivo financeiro.gueldin na sua pasta do Google Drive"
                         sx={{
                             backgroundColor: '#4285f4',
                             '&:hover': { backgroundColor: '#3367d6' },
                             px: 4,
                             py: 1.5,
-                            fontSize: '1.1rem',
+                            fontSize: '1rem',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 1
+                            gap: 1,
                         }}
                         startIcon={
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -51,19 +72,16 @@ const Apresentacao = ({ loadingAuth }: { loadingAuth: boolean }) => {
                             </svg>
                         }
                     >
-                        {loadingAuth && "Aguarde..."}
-                        {!loadingAuth && 'Usar Pelo Google Drive'}
+                        {loadingAuth ? 'Aguarde...' : 'Usar Pelo Google Drive'}
                     </Button>
-                </Box>
 
-                <Box>
-                    <Typography variant="body2" sx={{ color: '#e8f5e8', fontWeight: 'bold', opacity: 0.9 }}>
+                    <Typography variant="body2" sx={{ color: '#e8f5e8', fontWeight: 'bold', opacity: 0.95 }}>
                         🔒 Seus dados ficam seguros no Google Drive - nós não armazenamos nada
                     </Typography>
                 </Box>
             </Paper>
         </Container>
     );
-}
+};
 
 export default Apresentacao;
