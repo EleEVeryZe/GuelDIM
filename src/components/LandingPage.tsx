@@ -1,6 +1,7 @@
 import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
+  Avatar,
   Box,
   Button,
   Chip,
@@ -41,7 +42,16 @@ const LandingPage: React.FC = () => {
           </Box>
 
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={7}>
+ 
+            <Grid item xs={12} md={5}>
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                <Avatar
+                  alt="Foto do perfil"
+                  src="/profile.png"
+                  sx={{ width: { xs: 180, md: 240 }, height: { xs: 180, md: 240 }, border: "4px solid rgba(255,255,255,0.85)" }}
+                />
+              </Box>
+            </Grid>           <Grid item xs={12} md={7}>
               <Typography variant="h2" component="h1" sx={{ fontWeight: 800, lineHeight: 1.05, mb: 3 }}>
                 Sistemas robustos com
                 <Box component="span" sx={{ display: "block", color: "secondary.light" }}>
