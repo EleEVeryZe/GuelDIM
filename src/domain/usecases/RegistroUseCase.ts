@@ -1,6 +1,6 @@
 import { RegistroRepository } from "../repositories/RegistroRepository";
 import { Registro } from "../entities/Registro";
-import data from './data.json';
+import data from './../../../public/data.json';
 
 export class RegistroUseCase {
   fileName = 'financeiro080420261.geldIn';

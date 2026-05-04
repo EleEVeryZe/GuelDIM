@@ -1,8 +1,13 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import { GoogleDriveRegistroRepository } from "../adapters/drive/GoogleDriveRegistroRepository";
 import { RegistroUseCase } from "../domain/usecases/RegistroUseCase";
+import { LocalRegistroRepository } from "../adapters/drive/LocalRegistroRepository";
 
-const registroUseCase = new RegistroUseCase(new GoogleDriveRegistroRepository());
+let registroUseCase: RegistroUseCase;
+if (import.meta.env.VITE_USE_CLOUD_STORAGE === 'true')
+  registroUseCase = new RegistroUseCase(new GoogleDriveRegistroRepository());
+else
+  registroUseCase = new RegistroUseCase(LocalRegistroRepository.getInstance());
 
 interface RegistroContextValue {
   useCase: RegistroUseCase;
