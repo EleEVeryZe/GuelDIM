@@ -1,7 +1,7 @@
 // src/components/MainPage.tsx
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useRegistro } from "../context/RegistroContext";
+import { RegistroProvider, useRegistro } from "../context/RegistroContext";
 import Apresentacao from "./apresentacao/apresentacao";
 import MainTable from "./mainTable/MainTable";
 import { Box, CircularProgress, Typography } from "@mui/material";
@@ -33,11 +33,11 @@ const MainPage: React.FC = () => {
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'column', 
+          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          gap: 2 
+          gap: 2
         }}
       >
         <CircularProgress color="primary" size={60} thickness={4} />
@@ -60,10 +60,15 @@ const MainPage: React.FC = () => {
               Sair
             </button>
           </div>
-          {fileId && <MainTable fileId={fileId} />}
+          {
+            fileId &&
+            <RegistroProvider fileId={fileId}>
+              <MainTable fileId={fileId} />
+            </RegistroProvider>
+          }
         </section>
       ) : (
-        <Apresentacao loadingAuth={loadingAuth}/>
+        <Apresentacao loadingAuth={loadingAuth} />
       )}
     </section>
   );

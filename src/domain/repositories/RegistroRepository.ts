@@ -1,10 +1,12 @@
 import { Registro } from "../entities/Registro";
 
 export interface RegistroRepository {
-  getAll(fileId: string): Promise<Registro[]>;
-  add(fileId: string, registros: Registro[]): Promise<void>;
-  update(fileId: string, registros: Registro[]): Promise<void>;
-  remove(fileId: string, registroId: string): Promise<void>;
+  fileId: string;
+  getAll(): Promise<Registro[]>;
+  add(registros: Registro[]): Promise<void>;
+  update(registros: Registro[]): Promise<void>;
+  remove(registroId: string): Promise<void>;
   createFile(name: string, initialContent: string): Promise<{ id: string }>; 
   listFiles(): Promise<Array<{ id?: string; name?: string }>>;
+  updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">): Promise<any>;
 }

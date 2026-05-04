@@ -1,13 +1,38 @@
 import { gapi } from "gapi-script";
 import { RegistroRepository } from "../../domain/repositories/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
+import dayjs from "dayjs";
 
 export class GoogleDriveRegistroRepository implements RegistroRepository {
-  async getAll(fileId: string): Promise<Registro[]> {
+  fileId: string;
+
+  constructor(fileId: string) {
+    this.fileId = fileId
+  }
+
+  async updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">) {
+    const existing = await this.getAll();
+
+    const updatedRegistries = existing.map(oldVlr => {
+      if (oldVlr.idComum == idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf('month')))
+        return { ...oldVlr, ...newValue };
+      return oldVlr;
+    });
+
+    return gapi.client.request({
+      path: `/upload/drive/v3/files/${this.fileId}`,
+      method: "PATCH",
+      params: { uploadType: "media" },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedRegistries),
+    });
+  }
+
+  async getAll(): Promise<Registro[]> {
 
     try {
       const response = await gapi.client.drive.files.get({
-        fileId,
+        fileId: this.fileId,
         alt: "media",
       });
 
@@ -23,11 +48,11 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     }
   }
 
-  async add(fileId: string, registros: Registro[]): Promise<void> {
-    const existing = await this.getAll(fileId);
+  async add(registros: Registro[]): Promise<void> {
+    const existing = await this.getAll();
     const merged = [...existing, ...registros];
     await gapi.client.request({
-      path: `/upload/drive/v3/files/${fileId}`,
+      path: `/upload/drive/v3/files/${this.fileId}`,
       method: "PATCH",
       params: { uploadType: "media" },
       headers: { "Content-Type": "application/json" },
@@ -35,12 +60,12 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     });
   }
 
-  async update(fileId: string, registros: Registro[]): Promise<void> {
-    const existing = await this.getAll(fileId);
+  async update(registros: Registro[]): Promise<void> {
+    const existing = await this.getAll();
     const filtered = existing.filter(reg => reg.id != registros.at(0).id);
     const merged = [...filtered, ...registros];
     await gapi.client.request({
-      path: `/upload/drive/v3/files/${fileId}`,
+      path: `/upload/drive/v3/files/${this.fileId}`,
       method: "PATCH",
       params: { uploadType: "media" },
       headers: { "Content-Type": "application/json" },
@@ -48,10 +73,10 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     });
   }
 
-  async remove(fileId: string, registroId: string): Promise<void> {
-    const existing = await this.getAll(fileId);
+  async remove(registroId: string): Promise<void> {
+    const existing = await this.getAll();
     const filtered = existing.filter((r) => r.id !== registroId);
-    await this.update(fileId, filtered);
+    await this.update(filtered);
   }
 
   async createFile(name: string, initialContent: string): Promise<{ id: string }> {

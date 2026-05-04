@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && vite build",
-		"lint": "eslint .",
+	"lint": "eslint .",
 		"preview": "vite preview"
 	},
 	"dependencies": {
@@ -27,6 +27,7 @@
 		"react-dom": "^18.3.1",
 		"react-router-dom": "^7.13.2",
 		"recharts": "^2.15.1",
+		"ts-jest": "^29.4.9",
 		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
@@ -45,5 +46,12 @@
 		"typescript": "^5.5.3",
 		"typescript-eslint": "^8.0.1",
 		"vite": "^5.4.1"
+	},
+	"jest": {
+		"preset": "ts-jest",
+		"testEnvironment": "node",
+		"moduleNameMapper": {
+			"^@/(.*)$": "<rootDir>/$1"
+		}
 	}
 }

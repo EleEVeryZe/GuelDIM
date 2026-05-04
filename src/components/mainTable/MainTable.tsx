@@ -1,4 +1,5 @@
 "use client";
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import AddIcon from "@mui/icons-material/Add";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CloseIcon from "@mui/icons-material/Close";
@@ -114,6 +115,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
     id?: string;
   });
 
+  const [isUpdating, setIsUpdating] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
   const [investmentFileId, setInvestmentFileId] = useState("");
 
@@ -168,18 +170,18 @@ export default function MainTable({ fileId }: { fileId: string }) {
         }
       }
 
-      if (valorTotal > 0 || newRow.descricao.indexOf(":") !== -1 || newRow.descricao.toLowerCase().indexOf("salario") !== -1) 
+      if (valorTotal > 0 || newRow.descricao.indexOf(":") !== -1 || newRow.descricao.toLowerCase().indexOf("salario") !== -1)
         for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++)
-            parsedNewRow.push({
-              ...newRow,
-              valor: valorTotal / newRow.qtdParc,
-              dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
-              id: uuidv4(),
-              idComum,
-              parcelaAtual: currentParcela + 1,
-              dtEfetiva,
-              comentario: ""
-            });
+          parsedNewRow.push({
+            ...newRow,
+            valor: valorTotal / newRow.qtdParc,
+            dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
+            id: uuidv4(),
+            idComum,
+            parcelaAtual: currentParcela + 1,
+            dtEfetiva,
+            comentario: ""
+          });
 
 
       const newRows = [...rows, ...parsedNewRow];
@@ -250,7 +252,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
   const getPersisted = async () => {
     setIsLoading(true);
     try {
-      const rows = await useCase.getAll(fileId);
+      const rows = await useCase.getAll();
       if (!rows || rows.length == 0) return;
 
       setRows(rows);
@@ -268,18 +270,18 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
   const persist = async (toBePersisted: Registro, method = "POST") => {
     if (method === "PUT") {
-      await useCase.update(fileId, [toBePersisted]);
+      await useCase.update([toBePersisted]);
     } else {
-      await useCase.add(fileId, [toBePersisted]);
+      await useCase.add([toBePersisted]);
     }
   };
 
   const persistInBulk = async (toBePersisted: Registro[]) => {
-    await useCase.add(fileId, toBePersisted);
+    await useCase.add(toBePersisted);
   };
 
   const deleteRow = async (id: string) => {
-    await useCase.remove(fileId, id);
+    await useCase.remove(id);
   };
 
   const insertOrRemoveSelectedItems = (isInsert: boolean, items: string[]) => {
@@ -303,7 +305,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
           )
           .map((filtered) => ({ ...filtered, ehPago: isPagar }));
 
-        await useCase.update(fileId, modifiedItems);
+        await useCase.update(modifiedItems);
         setFilteredRows(
           filteredRows.map((filtered) =>
             selectedItems.indexOf(filtered.id) !== -1
@@ -316,7 +318,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
       const executarIndividual = async () => {
         const updatedRow = { ...row, ehPago: !row.ehPago };
-        await useCase.update(fileId, [updatedRow]);
+        await useCase.update([updatedRow]);
         setFilteredRows(
           filteredRows.map((filtered) =>
             filtered.id !== row.id ? filtered : updatedRow
@@ -365,411 +367,434 @@ export default function MainTable({ fileId }: { fileId: string }) {
             color="primary"
             aria-label="add"
             style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-        }}
-      >
-        <AddIcon />
-      </Fab>
-      <Filter
-        setFiltros={setFiltros}
-        filtros={filtros}
-        fonteList={fonteList}
-        setModalOpen={setModalOpen}
-      />
-      <Box sx={{ display: "flex" }}>
-        <Box>
-          <Checkbox
-            onChange={(event) =>
-              insertOrRemoveSelectedItems(
-                event.target.checked,
-                filteredRows.map(({ id }) => id)
-              )
-            }
-            defaultChecked={false}
+              position: "fixed",
+              bottom: 20,
+              right: 20,
+            }}
+          >
+            <AddIcon />
+          </Fab>
+          <Filter
+            setFiltros={setFiltros}
+            filtros={filtros}
+            fonteList={fonteList}
+            setModalOpen={setModalOpen}
           />
-        </Box>
-        <Box>
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Switch
-                  defaultChecked={false}
-                  checked={showPagos}
-                  onChange={() => setShowPagos((prevSelected) => !prevSelected)}
-                />
-              }
-              label="Exibir pagos"
-            />
-          </FormGroup>
-        </Box>
-        <Box sx={{ display: "flex" }}>
-          <ToggleButton
-            title="Pagar"
-            value="check"
-            selected={showPagos}
-            onChange={() => {
-              marcarOuDesmarcarComoPago(true);
-              setPagarRegistrosFiltrados(!pagarRegistrosFiltrados);
-            }}
-          >
-            Pagar {selectedItems.length}
-          </ToggleButton>
-
-          <ToggleButton
-            title="Pagar"
-            value="check"
-            selected={showPagos}
-            onChange={() => {
-              marcarOuDesmarcarComoPago(false);
-              setPagarRegistrosFiltrados(!pagarRegistrosFiltrados);
-            }}
-          >
-            Desfazer {selectedItems.length}
-          </ToggleButton>
-        </Box>
-      </Box>
-      {showAddOrUpdateComponent ? (
-        <Box className="bordered">
-          <Box>
-            <Box className="d-flex">
-              <div className="flex-1">
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DatePicker
-                    label="Mês"
-                    format="DD/MM/YYYY"
-                    value={dayjs(newRow.dtCorrente).locale("pt-br")}
-                    onChange={(value) => {
-                      setNewRow({ ...newRow, dtCorrente: dayjs(value) });
-                    }}
-                  />
-                </LocalizationProvider>
-              </div>
-              <TextField
-                id="outlined-basic"
-                label="Descrição"
-                className="full-width flex-2"
-                variant="outlined"
-                onChange={(e) =>
-                  setNewRow({ ...newRow, descricao: e.target.value })
+          <Box sx={{ display: "flex" }}>
+            <Box>
+              <Checkbox
+                onChange={(event) =>
+                  insertOrRemoveSelectedItems(
+                    event.target.checked,
+                    filteredRows.map(({ id }) => id)
+                  )
                 }
+                defaultChecked={false}
               />
             </Box>
-            <Box className="d-flex">
-              <TextField
-                id="outlined-valor-compra"
-                type="number"
-                label="Valor"
-                variant="outlined"
-                onChange={(e) =>
-                  setNewRow({
-                    ...newRow,
-                    valor:
-                      newRow.descricao.indexOf(":") !== -1 ||
-                      containsSalario(newRow.descricao)
-                        ? -1 * parseFloat(e.target.value.replace(",", "."))
-                        : parseFloat(e.target.value.replace(",", ".")),
-                  })
-                }
-              />
-
-              <TextField
-                id="outlined-basic"
-                label="Qtd Parcelas"
-                variant="outlined"
-                value={newRow.qtdParc}
-                type="number"
-                onChange={(e) =>
-                  setNewRow({
-                    ...newRow,
-                    qtdParc: parseInt(e.target.value),
-                  })
-                }
-              />
-              <TextField
-                id="outlined-basic"
-                label="Categoria"
-                variant="outlined"
-                onChange={(e) =>
-                  setNewRow({ ...newRow, categoria: e.target.value })
-                }
-              />
-            </Box>
-            <Box className="d-flex">
-              <TextField
-                id="outlined-basic"
-                label="Comentário"
-                variant="outlined"
-                onChange={(e) =>
-                  setNewRow({ ...newRow, comentario: e.target.value })
-                }
-              />
-              <FormControl sx={{ minWidth: 100, width: "100%" }} size="medium">
-                <InputLabel id="demo-select-small-label">Fonte</InputLabel>
-                <Select
-                  labelId="select-label"
-                  id="select"
-                  label="Fonte"
-                  className="select"
-                  value={newRow.fonte}
-                  defaultValue=""
-                  onChange={(e) =>
-                    setNewRow({ ...newRow, fonte: e.target.value })
+            <Box>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      defaultChecked={false}
+                      checked={showPagos}
+                      onChange={() => setShowPagos((prevSelected) => !prevSelected)}
+                    />
                   }
-                >
-                  {fonteList.map((ftItem) => (
-                    <MenuItem value={ftItem}>{ftItem}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  label="Exibir pagos"
+                />
+              </FormGroup>
+            </Box>
+            <Box sx={{ display: "flex" }}>
+              <ToggleButton
+                title="Pagar"
+                value="check"
+                selected={showPagos}
+                onChange={() => {
+                  marcarOuDesmarcarComoPago(true);
+                  setPagarRegistrosFiltrados(!pagarRegistrosFiltrados);
+                }}
+              >
+                Pagar {selectedItems.length}
+              </ToggleButton>
+
+              <ToggleButton
+                title="Pagar"
+                value="check"
+                selected={showPagos}
+                onChange={() => {
+                  marcarOuDesmarcarComoPago(false);
+                  setPagarRegistrosFiltrados(!pagarRegistrosFiltrados);
+                }}
+              >
+                Desfazer {selectedItems.length}
+              </ToggleButton>
             </Box>
           </Box>
-          <div className="txt-right">
-            {isCallingAPI ? (
-              <CircularProgress />
-            ) : (
-              <AddIcon onClick={() => add()} />
-            )}
-          </div>
-          <Box>
-            <TableCell colSpan={2}>
-              Soma Parcelas:
-              {newRow.valor * newRow.qtdParc}
-            </TableCell>
-            <TableCell colSpan={2}>
-              % do Total:
-              {obterPorcentagemDaCompra(newRow, filteredRows)}
-            </TableCell>
-            <TableCell colSpan={2}>
-              % do total Semanal:
-              {obterPorcentagemSemanalDaCompra(newRow, filteredRows)}
-            </TableCell>
-          </Box>
-        </Box>
-      ) : (
-        ""
-      )}
-      <TableContainer
-        component={Paper}
-        sx={{
-          maxHeight: "68vh",
-          overflow: "auto",
-          borderRadius: "12px",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
-        }}
-      >
-        <Table
-          size="small"
-          stickyHeader
-          sx={{
-            "-webkit-overflow-scrolling": "touch",
-            overflow: "auto",
-            minWidth: 1100,
-          }}
-          aria-label="simple table"
-        >
-          <TableHead>
-            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-              <TableCell colSpan={11}>
-                <Box display="flex" justifyContent="space-around" flexWrap="wrap">
-                  <span>Restante: {obterRestante(filteredRows)}</span>
-                  <span>A ser investido: {(() => {
-                    const totalSalario = filteredRows
-                      .filter((x) => containsSalario(x.descricao))
-                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                    const result = -1 * (0.2 * totalSalario);
-                    return result.toFixed(2);
-                  })()}</span>
-                  <span>Restante - Invest: {(() => {
-                    const totalSalario = filteredRows
-                      .filter((x) => containsSalario(x.descricao))
-                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                    const totalInvestimento = -1 * (0.2 * totalSalario);
-                    const minhasDespesas = parseFloat(
-                      filteredRows
-                        .filter((x) => !containsSalario(x.descricao))
-                        .reduce((a, c) => {
-                          return (parseFloat(a as any) +
-                            parseFloat(
-                              c.valor > 0 ? c.valor : (0 as any)
-                            )) as any;
-                        }, 0)
-                    );
-                    const result =
-                      -1 * totalSalario - minhasDespesas - totalInvestimento;
-                    return result.toFixed(2);
-                  })()}</span>
-                  <span>Minhas despesas: {parseFloat(
-                    filteredRows
-                      .filter((x) => !containsSalario(x.descricao))
-                      .reduce((a, c) => {
-                        return (parseFloat(a as any) +
-                          parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
-                      }, 0)
-                  ).toFixed(2)}</span>
-                  <span>Salário: {(() => {
-                    const totalSalario = filteredRows
-                      .filter((x) => containsSalario(x.descricao))
-                      .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                    const result = -1 * totalSalario;
-                    return result.toFixed(2);
-                  })()}</span>
-                  <span>Total: {parseFloat(
-                    filteredRows
-                      .filter((x) => !containsSalario(x.descricao))
-                      .reduce((a, c) => {
-                        return (parseFloat(a as any) +
-                          parseFloat(c.valor as any)) as any;
-                      }, 0)
-                  ).toFixed(2)}</span>
-                  <span>Soma: {parseFloat(
-                    filteredRows
-                      .filter((x) => !containsSalario(x.descricao))
-                      .reduce((a, c) => {
-                        return (parseFloat(a as any) +
-                          Math.abs(parseFloat(c.valor as any))) as any;
-                      }, 0)
-                  ).toFixed(2)}</span>
-                </Box>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-                        {filteredRows &&
-              filteredRows.map((row, idx) => (
-                
-                <TableRow
-                  key={idx}
-                  sx={{
-                    "&:last-child td, &:last-child th": { border: 0 },
-                    background: row.ehPago ? "#00800038" : "#ffffff",
-                    '&:nth-of-type(odd)': {
-                      backgroundColor: row.ehPago ? "#00800038" : "#fafafa",
-                    },
-                  }}
-                >
-                  
-                  <TableCell style={{ padding: "0 4px", minWidth: 48, width: 48, textAlign: "center" }}>
-                    <Checkbox
-                      onChange={(event) =>
-                        insertOrRemoveSelectedItems(event.target.checked, [row.id])
-                      }
-                      checked={selectedItems.indexOf(row.id) !== -1}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell style={{ padding: 0, width: 100 }}>
-                    {getEditableComponent(
-                      row,
-                      "dtCorrente",
-                      "dtCorrente",
-                      "data"
-                    )}
-                  </TableCell>
-                  <TableCell style={{ padding: 0, width: 300 }}>
-                    {getEditableComponent(row, "descricao", "descricao")}
-                  </TableCell>
-                  <TableCell style={{ padding: 0, width: 100 }}>
-                    {getEditableComponent(row, "Valor", "valor", "number")}
-                  </TableCell>
-                  <TableCell style={{ padding: 0, width: 120 }}>
-                    {editRow === row.id ? (
-                      <FormControl
-                        sx={{ minWidth: 100, width: "100%" }}
-                        size="medium"
-                      >
-                        <InputLabel id="demo-select-small-label">
-                          Fonte
-                        </InputLabel>
-                        <Select
-                          labelId="select-label"
-                          id="select"
-                          label="Fonte"
-                          className="select"
-                          value={row.fonte}
-                          defaultValue=""
-                          onChange={(e) => {
-                            setFilteredRows([
-                              ...filteredRows.map((x) => {
-                                if (x.id === editRow)
-                                  return {
-                                    ...row,
-                                    fonte: e.target.value,
-                                  };
-                                return x;
-                              }),
-                            ]);
-                          }}
-                        >
-                          {fonteList.map((ftItem) => (
-                            <MenuItem value={ftItem}>{ftItem}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    ) : (
-                      getEditableComponent(row, "Fonte", "fonte")
-                    )}
-                  </TableCell>
-                  <TableCell style={{ padding: 0, width: 120 }}>
-                    {getEditableComponent(row, "Categoria", "categoria")}
-                  </TableCell>
-                  <TableCell style={{ width: 80 }}>
-                    {editRow !== row.id &&
-                      row.parcelaAtual &&
-                      row.parcelaAtual + "/"}
-                    {getEditableComponent(row, "qtdParc", "qtdParc")}
-                  </TableCell>
-                  <TableCell style={{ width: 200 }}>
-                    {getEditableComponent(row, "Comentário", "comentario")}
-                  </TableCell>
-                  <TableCell style={{ width: 40 }}>
-                    <ModeEditIcon
-                      onClick={() => {
-                        if (editRow === row.id) {
-                          setEditRow("");
-                          persist(row, "PUT");
-                        } else setEditRow(row.id);
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell style={{ width: 40 }}>
-                    {isPaying.loading && isPaying.id === row.id ? (
-                      <CircularProgress
-                        style={{ width: "25px", height: "25px" }}
-                      />
-                    ) : (
-                      <AttachMoneyIcon
-                        onClick={() => {
-                          marcarOuDesmarcarComoPago(!!!row.ehPago, row);
+          {showAddOrUpdateComponent ? (
+            <Box className="bordered">
+              <Box>
+                <Box className="d-flex">
+                  <div className="flex-1">
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <DatePicker
+                        label="Mês"
+                        format="DD/MM/YYYY"
+                        value={dayjs(newRow.dtCorrente).locale("pt-br")}
+                        onChange={(value) => {
+                          setNewRow({ ...newRow, dtCorrente: dayjs(value) });
                         }}
                       />
-                    )}
-                  </TableCell>
+                    </LocalizationProvider>
+                  </div>
+                  <TextField
+                    id="outlined-basic"
+                    label="Descrição"
+                    className="full-width flex-2"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setNewRow({ ...newRow, descricao: e.target.value })
+                    }
+                  />
+                </Box>
+                <Box className="d-flex">
+                  <TextField
+                    id="outlined-valor-compra"
+                    type="number"
+                    label="Valor"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setNewRow({
+                        ...newRow,
+                        valor:
+                          newRow.descricao.indexOf(":") !== -1 ||
+                            containsSalario(newRow.descricao)
+                            ? -1 * parseFloat(e.target.value.replace(",", "."))
+                            : parseFloat(e.target.value.replace(",", ".")),
+                      })
+                    }
+                  />
 
-                  <TableCell style={{ width: 40 }}>
-                    <CloseIcon
-                      onClick={() => {
-                        deleteRow(row.id);
-                        setFilteredRows(
-                          filteredRows.filter((reg) => row.id != reg.id)
+                  <TextField
+                    id="outlined-basic"
+                    label="Qtd Parcelas"
+                    variant="outlined"
+                    value={newRow.qtdParc}
+                    type="number"
+                    onChange={(e) =>
+                      setNewRow({
+                        ...newRow,
+                        qtdParc: parseInt(e.target.value),
+                      })
+                    }
+                  />
+                  <TextField
+                    id="outlined-basic"
+                    label="Categoria"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setNewRow({ ...newRow, categoria: e.target.value })
+                    }
+                  />
+                </Box>
+                <Box className="d-flex">
+                  <TextField
+                    id="outlined-basic"
+                    label="Comentário"
+                    variant="outlined"
+                    onChange={(e) =>
+                      setNewRow({ ...newRow, comentario: e.target.value })
+                    }
+                  />
+                  <FormControl sx={{ minWidth: 100, width: "100%" }} size="medium">
+                    <InputLabel id="demo-select-small-label">Fonte</InputLabel>
+                    <Select
+                      labelId="select-label"
+                      id="select"
+                      label="Fonte"
+                      className="select"
+                      value={newRow.fonte}
+                      defaultValue=""
+                      onChange={(e) =>
+                        setNewRow({ ...newRow, fonte: e.target.value })
+                      }
+                    >
+                      {fonteList.map((ftItem) => (
+                        <MenuItem value={ftItem}>{ftItem}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+              <div className="txt-right">
+                {isCallingAPI ? (
+                  <CircularProgress />
+                ) : (
+                  <AddIcon onClick={() => add()} />
+                )}
+              </div>
+              <Box>
+                <TableCell colSpan={2}>
+                  Soma Parcelas:
+                  {newRow.valor * newRow.qtdParc}
+                </TableCell>
+                <TableCell colSpan={2}>
+                  % do Total:
+                  {obterPorcentagemDaCompra(newRow, filteredRows)}
+                </TableCell>
+                <TableCell colSpan={2}>
+                  % do total Semanal:
+                  {obterPorcentagemSemanalDaCompra(newRow, filteredRows)}
+                </TableCell>
+              </Box>
+            </Box>
+          ) : (
+            ""
+          )}
+          <TableContainer
+            component={Paper}
+            sx={{
+              maxHeight: "68vh",
+              overflow: "auto",
+              borderRadius: "12px",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+            }}
+          >
+            <Table
+              size="small"
+              stickyHeader
+              sx={{
+                "-webkit-overflow-scrolling": "touch",
+                overflow: "auto",
+                minWidth: 1100,
+              }}
+              aria-label="simple table"
+            >
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                  <TableCell colSpan={11}>
+                    <Box display="flex" justifyContent="space-around" flexWrap="wrap">
+                      <span>Restante: {obterRestante(filteredRows)}</span>
+                      <span>A ser investido: {(() => {
+                        const totalSalario = filteredRows
+                          .filter((x) => containsSalario(x.descricao))
+                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                        const result = -1 * (0.2 * totalSalario);
+                        return result.toFixed(2);
+                      })()}</span>
+                      <span>Restante - Invest: {(() => {
+                        const totalSalario = filteredRows
+                          .filter((x) => containsSalario(x.descricao))
+                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                        const totalInvestimento = -1 * (0.2 * totalSalario);
+                        const minhasDespesas = parseFloat(
+                          filteredRows
+                            .filter((x) => !containsSalario(x.descricao))
+                            .reduce((a, c) => {
+                              return (parseFloat(a as any) +
+                                parseFloat(
+                                  c.valor > 0 ? c.valor : (0 as any)
+                                )) as any;
+                            }, 0)
                         );
-                      }}
-                    />
+                        const result =
+                          -1 * totalSalario - minhasDespesas - totalInvestimento;
+                        return result.toFixed(2);
+                      })()}</span>
+                      <span>Minhas despesas: {parseFloat(
+                        filteredRows
+                          .filter((x) => !containsSalario(x.descricao))
+                          .reduce((a, c) => {
+                            return (parseFloat(a as any) +
+                              parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
+                          }, 0)
+                      ).toFixed(2)}</span>
+                      <span>Salário: {(() => {
+                        const totalSalario = filteredRows
+                          .filter((x) => containsSalario(x.descricao))
+                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                        const result = -1 * totalSalario;
+                        return result.toFixed(2);
+                      })()}</span>
+                      <span>Total: {parseFloat(
+                        filteredRows
+                          .filter((x) => !containsSalario(x.descricao))
+                          .reduce((a, c) => {
+                            return (parseFloat(a as any) +
+                              parseFloat(c.valor as any)) as any;
+                          }, 0)
+                      ).toFixed(2)}</span>
+                      <span>Soma: {parseFloat(
+                        filteredRows
+                          .filter((x) => !containsSalario(x.descricao))
+                          .reduce((a, c) => {
+                            return (parseFloat(a as any) +
+                              Math.abs(parseFloat(c.valor as any))) as any;
+                          }, 0)
+                      ).toFixed(2)}</span>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ))
-              
-              }
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <AddFonteModal
-        isOpenFromOutside={isModalOpen}
-        registros={rows}
-        outsideFonteList={fonteList}
-        setOutsideFonteList={setFonteList}
-      />
+              </TableHead>
+              <TableBody>
+                {filteredRows &&
+                  filteredRows.map((row, idx) => (
+
+                    <TableRow
+                      key={idx}
+                      sx={{
+                        "&:last-child td, &:last-child th": { border: 0 },
+                        background: row.ehPago ? "#00800038" : "#ffffff",
+                        '&:nth-of-type(odd)': {
+                          backgroundColor: row.ehPago ? "#00800038" : "#fafafa",
+                        },
+                      }}
+                    >
+
+                      <TableCell style={{ padding: "0 4px", minWidth: 48, width: 48, textAlign: "center" }}>
+                        <Checkbox
+                          onChange={(event) =>
+                            insertOrRemoveSelectedItems(event.target.checked, [row.id])
+                          }
+                          checked={selectedItems.indexOf(row.id) !== -1}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 100 }}>
+                        {getEditableComponent(
+                          row,
+                          "dtCorrente",
+                          "dtCorrente",
+                          "data"
+                        )}
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 300 }}>
+                        {getEditableComponent(row, "descricao", "descricao")}
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 100 }}>
+                        {getEditableComponent(row, "Valor", "valor", "number")}
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 120 }}>
+                        {editRow === row.id ? (
+                          <FormControl
+                            sx={{ minWidth: 100, width: "100%" }}
+                            size="medium"
+                          >
+                            <InputLabel id="demo-select-small-label">
+                              Fonte
+                            </InputLabel>
+                            <Select
+                              labelId="select-label"
+                              id="select"
+                              label="Fonte"
+                              className="select"
+                              value={row.fonte}
+                              defaultValue=""
+                              onChange={(e) => {
+                                setFilteredRows([
+                                  ...filteredRows.map((x) => {
+                                    if (x.id === editRow)
+                                      return {
+                                        ...row,
+                                        fonte: e.target.value,
+                                      };
+                                    return x;
+                                  }),
+                                ]);
+                              }}
+                            >
+                              {fonteList.map((ftItem) => (
+                                <MenuItem value={ftItem}>{ftItem}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          getEditableComponent(row, "Fonte", "fonte")
+                        )}
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 120 }}>
+                        {getEditableComponent(row, "Categoria", "categoria")}
+                      </TableCell>
+                      <TableCell style={{ width: 80 }}>
+                        {editRow !== row.id &&
+                          row.parcelaAtual &&
+                          row.parcelaAtual + "/"}
+                        {getEditableComponent(row, "qtdParc", "qtdParc")}
+                      </TableCell>
+                      <TableCell style={{ width: 200 }}>
+                        {getEditableComponent(row, "Comentário", "comentario")}
+                      </TableCell>
+                      <TableCell style={{ width: 40 }}>
+                        {
+                          isUpdating ?
+                            <CircularProgress
+                              style={{ width: "25px", height: "25px" }}
+                            />
+                            :
+                            <AutoFixHighIcon
+                              onClick={async () => {
+                                if (editRow === row.id) {
+                                  setEditRow("");
+
+                                  setIsUpdating(true);
+                                  await useCase.updateAllIdComum(row.idComum, row);
+                                  setIsUpdating(false);
+
+                                } else setEditRow(row.id);
+                              }}
+                            />
+                        }
+
+                      </TableCell>
+                      <TableCell style={{ width: 40 }}>
+                        <ModeEditIcon
+
+                          onClick={() => {
+                            if (editRow === row.id) {
+                              setEditRow("");
+                              persist(row, "PUT");
+                            } else setEditRow(row.id);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell style={{ width: 40 }}>
+                        {isPaying.loading && isPaying.id === row.id ? (
+                          <CircularProgress
+                            style={{ width: "25px", height: "25px" }}
+                          />
+                        ) : (
+                          <AttachMoneyIcon
+                            onClick={() => {
+                              marcarOuDesmarcarComoPago(!!!row.ehPago, row);
+                            }}
+                          />
+                        )}
+                      </TableCell>
+
+                      <TableCell style={{ width: 40 }}>
+                        <CloseIcon
+                          onClick={() => {
+                            deleteRow(row.id);
+                            setFilteredRows(
+                              filteredRows.filter((reg) => row.id != reg.id)
+                            );
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))
+
+                }
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <AddFonteModal
+            isOpenFromOutside={isModalOpen}
+            registros={rows}
+            outsideFonteList={fonteList}
+            setOutsideFonteList={setFonteList}
+          />
         </>
       )}
 

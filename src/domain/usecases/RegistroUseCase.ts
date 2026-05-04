@@ -4,22 +4,29 @@ import data from './data.json';
 
 export class RegistroUseCase {
   fileName = 'financeiro080420261.geldIn';
-  constructor(private repository: RegistroRepository) {}
+  constructor(private repository: RegistroRepository) { }
 
-  async getAll(fileId: string): Promise<Registro[]> {
-    return this.repository.getAll(fileId);
+  async getAll(): Promise<Registro[]> {
+    return this.repository.getAll();
   }
 
-  async add(fileId: string, registros: Registro[]): Promise<void> {
-    return this.repository.add(fileId, registros);
+  async add(registros: Registro[]): Promise<void> {
+    return this.repository.add(registros);
   }
 
-  async update(fileId: string, registros: Registro[]): Promise<void> {
-    return this.repository.update(fileId, registros);
+  async update(registros: Registro[]): Promise<void> {
+    return this.repository.update(registros);
   }
 
-  async remove(fileId: string, registroId: string): Promise<void> {
-    return this.repository.remove(fileId, registroId);
+  /*
+    This functions updates all ocorrence of the registers that matches the idCommon passed as argument
+  */
+  async updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">): Promise<void> {
+    return this.repository.updateAllIdComum(idCommon, newValue);
+  }
+
+  async remove(registroId: string): Promise<void> {
+    return this.repository.remove(registroId);
   }
 
   async createOrOpenDataFile(): Promise<string> {
