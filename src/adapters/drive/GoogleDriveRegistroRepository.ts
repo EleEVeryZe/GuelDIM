@@ -51,7 +51,13 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
   async remove(fileId: string, registroId: string): Promise<void> {
     const existing = await this.getAll(fileId);
     const filtered = existing.filter((r) => r.id !== registroId);
-    await this.update(fileId, filtered);
+    await gapi.client.request({
+      path: `/upload/drive/v3/files/${fileId}`,
+      method: "PATCH",
+      params: { uploadType: "media" },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filtered),
+    });
   }
 
   async createFile(name: string, initialContent: string): Promise<{ id: string }> {
