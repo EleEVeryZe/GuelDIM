@@ -2,20 +2,24 @@ import { gapi } from "gapi-script";
 import { RegistroRepository } from "../../domain/repositories/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
 import dayjs from "dayjs";
+import data from './../../../public/data.json';
 
 export class GoogleDriveRegistroRepository implements RegistroRepository {
+  static GOOGLEDRIVE_FILE_NAME = 'financeiro040520261.geldIn'; 
   fileId: string;
 
   constructor(fileId: string) {
     this.fileId = fileId
   }
 
-  async updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">) {
+  async updateAllIdComum(idCommon: string, newValue: Registro) {
     const existing = await this.getAll();
 
     const updatedRegistries = existing.map(oldVlr => {
-      if (oldVlr.idComum == idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf('month')))
-        return { ...oldVlr, ...newValue };
+      if (oldVlr.idComum == idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf('month'))) {
+        const { descricao, valor, ehPago, categoria } = newValue;
+        return { ...oldVlr, descricao, valor, ehPago, categoria };
+      }
       return oldVlr;
     });
 
@@ -29,7 +33,6 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
   }
 
   async getAll(): Promise<Registro[]> {
-
     try {
       const response = await gapi.client.drive.files.get({
         fileId: this.fileId,
@@ -76,10 +79,16 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
   async remove(registroId: string): Promise<void> {
     const existing = await this.getAll();
     const filtered = existing.filter((r) => r.id !== registroId);
-    await this.update(filtered);
+    await gapi.client.request({
+      path: `/upload/drive/v3/files/${this.fileId}`,
+      method: "PATCH",
+      params: { uploadType: "media" },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filtered),
+    });
   }
 
-  async createFile(name: string, initialContent: string): Promise<{ id: string }> {
+  public static async createFile(name: string, initialContent: string): Promise<{ id: string }> {
     const boundary = "-------314159265358979323846";
     const delimiter = `\r\n--${boundary}\r\n`;
     const closeDelimiter = `\r\n--${boundary}--`;
@@ -108,7 +117,7 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     return { id: String(response.result.id) };
   }
 
-  async listFiles(): Promise<Array<{ id?: string; name?: string }>> {
+  public static async listFiles(): Promise<Array<{ id?: string; name?: string }>> {
     const response = await gapi.client.drive.files.list({
       pageSize: 100,
       fields: "files(id, name, mimeType)",
@@ -118,5 +127,18 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     if (!files) return [];
 
     return files.map((file) => ({ id: file.id, name: file.name }));
+  }
+
+  public static async getInstance(): Promise<GoogleDriveRegistroRepository> {
+    const files = await GoogleDriveRegistroRepository.listFiles();
+
+    const dataFile = files.find((file) => file.name === GoogleDriveRegistroRepository.GOOGLEDRIVE_FILE_NAME);
+
+    if (dataFile?.id)
+      return new GoogleDriveRegistroRepository(dataFile.id)
+
+
+    const created = await GoogleDriveRegistroRepository.createFile(GoogleDriveRegistroRepository.GOOGLEDRIVE_FILE_NAME, JSON.stringify(data));
+    return new GoogleDriveRegistroRepository(created.id)
   }
 }

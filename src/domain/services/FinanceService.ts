@@ -6,6 +6,30 @@ export const containsSalario = (descricao: string): boolean => {
   return descr === "salario" || descr === "salário";
 };
 
+export const obterTotalPorCategoria = (
+  data: Registro[],
+  categoria: string
+): number => {
+  return data
+    .filter(
+      (x) =>
+        !containsSalario(x.descricao) &&
+        x.categoria?.toLowerCase() === categoria.toLowerCase()
+    )
+    .reduce((a, c) => a + (Number(c.valor) > 0 ? Number(c.valor) : 0), 0);
+};
+
+export const obterPorcentagemPorCategoria = (
+  data: Registro[],
+  categoria: string
+): string => {
+  const totalSalario = Math.abs(obterTotalSalario(data));
+  if (totalSalario === 0) return "0%";
+
+  const totalCategoria = obterTotalPorCategoria(data, categoria);
+  return ((100 * totalCategoria) / totalSalario).toFixed(2);
+};
+
 export const obterTotalSalario = (data: Registro[]): number => {
   return data
     .filter((x) => containsSalario(x.descricao))

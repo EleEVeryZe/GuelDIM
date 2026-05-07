@@ -33,7 +33,6 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
@@ -42,6 +41,7 @@ import { InvestmentUseCase } from "../../domain/usecases/InvestmentUseCase";
 import {
   containsSalario,
   obterPorcentagemDaCompra,
+  obterPorcentagemPorCategoria,
   obterPorcentagemSemanalDaCompra,
   obterRestante,
 } from "../../domain/services/FinanceService";
@@ -79,7 +79,7 @@ function createData(
 
 const initialRows = [] as Registro[];
 
-export default function MainTable({ fileId }: { fileId: string }) {
+export default function MainTable() {
   const { useCase } = useRegistro();
   const [selectedItems, setSelectedItems] = useState([] as string[]);
   const [showPagos, setShowPagos] = useState(true);
@@ -119,73 +119,37 @@ export default function MainTable({ fileId }: { fileId: string }) {
   const [currentTab, setCurrentTab] = useState(0);
   const [investmentFileId, setInvestmentFileId] = useState("");
 
+  const formatCategoria = (categoria: string | null | undefined): string => {
+    if (!categoria) return "";
+
+    const value = categoria.toLowerCase();
+    switch (value) {
+      case "despesas_fixas":
+        return "Despesas fixas";
+      case "lazer":
+        return "Lazer";
+      case "despesas_variaveis":
+        return "Despesas variáveis";
+      case "poupanca":
+      case "poupança":
+        return "Poupança";
+      default:
+        return categoria;
+    }
+  };
+
   const { filtros, setFiltros } = filterModule(
     rows,
     showPagos,
     setFilteredRows
   );
 
-  const formatDate = (dt: Dayjs, i: number) => {
-    return dt.add(i, "months");
-  };
-
   const add = async () => {
-    if (isCallingAPI) return;
-
-    let parsedNewRow: Registro[] = [];
-    const idComum = uuidv4();
     try {
+      if (isCallingAPI) return;
       setIsCallingAPI(true);
-      const dtEfetiva = dayjs().toISOString();
-      let valorTotal = newRow.valor;
-
-      for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++) {
-        if (!newRow.descricao?.length)
-          throw { message: "Campo descrição não pode estar vazio" };
-
-        if (
-          newRow.comentario.indexOf("*") !== -1 &&
-          newRow.comentario.indexOf(":") !== -1
-        ) {
-          const devedores = newRow.comentario.replace("*", "").split(",");
-          for (let i = 0; i < devedores.length; i++) {
-            const e = devedores[i];
-            const donoDivida = e.split(":")[0].replaceAll(" ", "");
-            const vlrDivida = parseFloat(e.split(":")[1]);
-
-            valorTotal = valorTotal - (vlrDivida / newRow.qtdParc);
-
-            parsedNewRow.push({
-              ...newRow,
-              descricao: donoDivida + ": " + newRow.descricao,
-              valor: -1 * vlrDivida / newRow.qtdParc,
-              dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
-              id: uuidv4(),
-              idComum,
-              parcelaAtual: currentParcela + 1,
-              dtEfetiva,
-              comentario: ""
-            });
-          }
-        }
-      }
-
-      if (valorTotal > 0 || newRow.descricao.indexOf(":") !== -1 || newRow.descricao.toLowerCase().indexOf("salario") !== -1)
-        for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++)
-          parsedNewRow.push({
-            ...newRow,
-            valor: valorTotal / newRow.qtdParc,
-            dtCorrente: formatDate(newRow.dtCorrente, currentParcela),
-            id: uuidv4(),
-            idComum,
-            parcelaAtual: currentParcela + 1,
-            dtEfetiva,
-            comentario: ""
-          });
-
-
+      const parsedNewRow = await useCase.add(newRow);
       const newRows = [...rows, ...parsedNewRow];
-      await persistInBulk(parsedNewRow);
       setRows(newRows);
       setShowAddOrUpdateComponent(false);
     } catch (err) {
@@ -237,7 +201,11 @@ export default function MainTable({ fileId }: { fileId: string }) {
 
     if (type === "number") return parseFloat(row[propertyName]).toFixed(2);
 
-    if (!type) return row[propertyName];
+    if (!type) {
+      return propertyName === "categoria"
+        ? formatCategoria(row[propertyName] as string)
+        : row[propertyName];
+    }
   };
 
   useEffect(() => {
@@ -262,22 +230,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
       const invFileId = await investmentUseCase.createOrOpenInvestmentFile();
       setInvestmentFileId(invFileId);
     } catch (err) {
-      alert(JSON.stringify(err));
+      console.error(JSON.stringify(err));
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const persist = async (toBePersisted: Registro, method = "POST") => {
-    if (method === "PUT") {
-      await useCase.update([toBePersisted]);
-    } else {
-      await useCase.add([toBePersisted]);
-    }
-  };
-
-  const persistInBulk = async (toBePersisted: Registro[]) => {
-    await useCase.add(toBePersisted);
   };
 
   const deleteRow = async (id: string) => {
@@ -329,7 +285,7 @@ export default function MainTable({ fileId }: { fileId: string }) {
       if (row) await executarIndividual();
       else await executarSelecionados();
     } catch (err) {
-      alert(
+      console.error(
         `Ocorreu um erro ao ${isPagar ? "Marcar" : "Desmarcar"} o registro`
       );
       console.error(err);
@@ -489,14 +445,25 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       })
                     }
                   />
-                  <TextField
-                    id="outlined-basic"
-                    label="Categoria"
-                    variant="outlined"
-                    onChange={(e) =>
-                      setNewRow({ ...newRow, categoria: e.target.value })
-                    }
-                  />
+                  <FormControl sx={{ minWidth: 180, width: "100%" }} size="medium">
+                    <InputLabel id="categoria-select-label">Categoria</InputLabel>
+                    <Select
+                      labelId="categoria-select-label"
+                      id="categoria-select"
+                      value={newRow.categoria ?? ""}
+                      label="Categoria"
+                      renderValue={(value) => formatCategoria(value as string)}
+                      onChange={(e) =>
+                        setNewRow({ ...newRow, categoria: e.target.value })
+                      }
+                    >
+                      <MenuItem value=""><em>Selecione</em></MenuItem>
+                      <MenuItem value="despesas_fixas">Despesas fixas</MenuItem>
+                      <MenuItem value="lazer">Lazer</MenuItem>
+                      <MenuItem value="despesas_variaveis">Despesas variáveis</MenuItem>
+                      <MenuItem value="poupanca">Poupança</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Box>
                 <Box className="d-flex">
                   <TextField
@@ -574,65 +541,67 @@ export default function MainTable({ fileId }: { fileId: string }) {
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableCell colSpan={11}>
-                    <Box display="flex" justifyContent="space-around" flexWrap="wrap">
-                      <span>Restante: {obterRestante(filteredRows)}</span>
-                      <span>A ser investido: {(() => {
-                        const totalSalario = filteredRows
-                          .filter((x) => containsSalario(x.descricao))
-                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                        const result = -1 * (0.2 * totalSalario);
-                        return result.toFixed(2);
-                      })()}</span>
-                      <span>Restante - Invest: {(() => {
-                        const totalSalario = filteredRows
-                          .filter((x) => containsSalario(x.descricao))
-                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                        const totalInvestimento = -1 * (0.2 * totalSalario);
-                        const minhasDespesas = parseFloat(
+                    <Box display="block" justifyContent="space-around" flexWrap="wrap">
+                      <Box display="flex" justifyContent="space-between" flexWrap="wrap">
+                        <span>Despesas fixas(35%): {obterPorcentagemPorCategoria(filteredRows, "despesas_fixas")}</span>
+                        <span>Lazer(30%): {obterPorcentagemPorCategoria(filteredRows, "lazer")}</span>
+                        <span>Despesas variáveis(15%): {obterPorcentagemPorCategoria(filteredRows, "despesas_variaveis")}</span>
+                        <span>Poupança(20%): {obterPorcentagemPorCategoria(filteredRows, "poupanca")}</span>
+                      </Box>
+
+                      <Box display="flex" justifyContent="space-between" flexWrap="wrap">
+                        <span>Restante: {obterRestante(filteredRows)}</span>
+                        <span>A ser investido: {(() => {
+                          const totalSalario = filteredRows
+                            .filter((x) => containsSalario(x.descricao))
+                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                          const result = -1 * (0.2 * totalSalario);
+                          return result.toFixed(2);
+                        })()}</span>
+                        <span>Restante - Invest: {(() => {
+                          const totalSalario = filteredRows
+                            .filter((x) => containsSalario(x.descricao))
+                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                          const totalInvestimento = -1 * (0.2 * totalSalario);
+                          const minhasDespesas = parseFloat(
+                            filteredRows
+                              .filter((x) => !containsSalario(x.descricao))
+                              .reduce((a, c) => {
+                                return (parseFloat(a as any) +
+                                  parseFloat(
+                                    c.valor > 0 ? c.valor : (0 as any)
+                                  )) as any;
+                              }, 0)
+                          );
+                          const result =
+                            -1 * totalSalario - minhasDespesas - totalInvestimento;
+                          return result.toFixed(2);
+                        })()}</span>
+                        <span>Minhas despesas: {parseFloat(
                           filteredRows
                             .filter((x) => !containsSalario(x.descricao))
                             .reduce((a, c) => {
                               return (parseFloat(a as any) +
-                                parseFloat(
-                                  c.valor > 0 ? c.valor : (0 as any)
-                                )) as any;
+                                parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
                             }, 0)
-                        );
-                        const result =
-                          -1 * totalSalario - minhasDespesas - totalInvestimento;
-                        return result.toFixed(2);
-                      })()}</span>
-                      <span>Minhas despesas: {parseFloat(
-                        filteredRows
-                          .filter((x) => !containsSalario(x.descricao))
-                          .reduce((a, c) => {
-                            return (parseFloat(a as any) +
-                              parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
-                          }, 0)
-                      ).toFixed(2)}</span>
-                      <span>Salário: {(() => {
-                        const totalSalario = filteredRows
-                          .filter((x) => containsSalario(x.descricao))
-                          .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                        const result = -1 * totalSalario;
-                        return result.toFixed(2);
-                      })()}</span>
-                      <span>Total: {parseFloat(
-                        filteredRows
-                          .filter((x) => !containsSalario(x.descricao))
-                          .reduce((a, c) => {
-                            return (parseFloat(a as any) +
-                              parseFloat(c.valor as any)) as any;
-                          }, 0)
-                      ).toFixed(2)}</span>
-                      <span>Soma: {parseFloat(
-                        filteredRows
-                          .filter((x) => !containsSalario(x.descricao))
-                          .reduce((a, c) => {
-                            return (parseFloat(a as any) +
-                              Math.abs(parseFloat(c.valor as any))) as any;
-                          }, 0)
-                      ).toFixed(2)}</span>
+                        ).toFixed(2)}</span>
+                        <span>Salário: {(() => {
+                          const totalSalario = filteredRows
+                            .filter((x) => containsSalario(x.descricao))
+                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
+                          const result = -1 * totalSalario;
+                          return result.toFixed(2);
+                        })()}</span>
+
+                        <span>Soma: {parseFloat(
+                          filteredRows
+                            .filter((x) => !containsSalario(x.descricao))
+                            .reduce((a, c) => {
+                              return (parseFloat(a as any) +
+                                Math.abs(parseFloat(c.valor as any))) as any;
+                            }, 0)
+                        ).toFixed(2)}</span>
+                      </Box>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -714,7 +683,43 @@ export default function MainTable({ fileId }: { fileId: string }) {
                         )}
                       </TableCell>
                       <TableCell style={{ padding: 0, width: 120 }}>
-                        {getEditableComponent(row, "Categoria", "categoria")}
+                        {editRow === row.id ? (
+                          <FormControl
+                            sx={{ minWidth: 100, width: "100%" }}
+                            size="medium"
+                          >
+                            <InputLabel id={`categoria-select-label-${row.id}`}>
+                              Categoria
+                            </InputLabel>
+                            <Select
+                              labelId={`categoria-select-label-${row.id}`}
+                              id={`categoria-select-${row.id}`}
+                              label="Categoria"
+                              value={row.categoria ?? ""}
+                              renderValue={(value) => formatCategoria(value as string)}
+                              onChange={(e) => {
+                                setFilteredRows([
+                                  ...filteredRows.map((x) => {
+                                    if (x.id === editRow)
+                                      return {
+                                        ...row,
+                                        categoria: e.target.value,
+                                      };
+                                    return x;
+                                  }),
+                                ]);
+                              }}
+                            >
+                              <MenuItem value=""><em>Selecione</em></MenuItem>
+                              <MenuItem value="despesas_fixas">Despesas fixas</MenuItem>
+                              <MenuItem value="lazer">Lazer</MenuItem>
+                              <MenuItem value="despesas_variaveis">Despesas variáveis</MenuItem>
+                              <MenuItem value="poupanca">Poupança</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          getEditableComponent(row, "Categoria", "categoria")
+                        )}
                       </TableCell>
                       <TableCell style={{ width: 80 }}>
                         {editRow !== row.id &&
@@ -749,11 +754,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
                         <ModeEditIcon
-
-                          onClick={() => {
+                          onClick={async () => {
                             if (editRow === row.id) {
+                              await useCase.update([row]);
                               setEditRow("");
-                              persist(row, "PUT");
                             } else setEditRow(row.id);
                           }}
                         />
@@ -796,9 +800,10 @@ export default function MainTable({ fileId }: { fileId: string }) {
             setOutsideFonteList={setFonteList}
           />
         </>
-      )}
+      )
+      }
 
       {currentTab === 1 && investmentFileId && <InvestmentTable fileId={investmentFileId} />}
-    </div>
+    </div >
   );
 }

@@ -5,30 +5,13 @@ import { RegistroProvider, useRegistro } from "../context/RegistroContext";
 import Apresentacao from "./apresentacao/apresentacao";
 import MainTable from "./mainTable/MainTable";
 import { Box, CircularProgress, Typography } from "@mui/material";
+import { signOut } from "../services/googleApi";
 
 const MainPage: React.FC = () => {
-  const { loadingAuth, isSignedIn, signIn, signOut } = useContext(AuthContext);
-  const { useCase } = useRegistro();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [fileId, setFileId] = useState<string>();
+  const { isLoadingFile } = useRegistro();
+  const { signIn } = useContext(AuthContext);
 
-  useEffect(() => {
-    if (isSignedIn) fetchFiles();
-  }, [isSignedIn]);
-
-  const fetchFiles = async () => {
-    setLoading(true);
-    try {
-      const currentFileId = await useCase.createOrOpenDataFile();
-      setFileId(currentFileId);
-    } catch (error) {
-      console.error("Error fetching or creating file:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading)
+  if (isLoadingFile)
     return (
       <Box
         sx={{
@@ -42,36 +25,23 @@ const MainPage: React.FC = () => {
       >
         <CircularProgress color="primary" size={60} thickness={4} />
         <Typography variant="body1" color="textSecondary">
-          Obtendo arquivo
+          Obtendo arquivo...
         </Typography>
       </Box>
     );
 
-  return (
-    <section>
-      {isSignedIn ? (
-        <section>
-          <div className="mb-4 txt-right">
-            <button
-              type="button"
-              className="btn btn-lg bg-danger"
-              onClick={signOut}
-            >
-              Sair
-            </button>
-          </div>
-          {
-            fileId &&
-            <RegistroProvider fileId={fileId}>
-              <MainTable fileId={fileId} />
-            </RegistroProvider>
-          }
-        </section>
-      ) : (
-        <Apresentacao loadingAuth={loadingAuth} />
-      )}
-    </section>
-  );
+  return <section>
+    <div className="mb-4 txt-right">
+      <button
+        type="button"
+        className="btn btn-lg bg-danger"
+        onClick={signOut}
+      >
+        Sair
+      </button>
+    </div>
+    <MainTable />
+  </section>
 };
 
 export default MainPage;

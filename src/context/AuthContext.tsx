@@ -9,6 +9,7 @@ import {
 
 interface AuthContextProps {
 	loadingAuth: boolean;
+	gapiInitialized: boolean;
 	isSignedIn: boolean;
 	signIn: () => void;
 	signOut: () => void;
@@ -17,6 +18,7 @@ interface AuthContextProps {
 export const AuthContext = createContext<AuthContextProps>({
 	loadingAuth: true,
 	isSignedIn: false,
+	gapiInitialized: false,
 	signIn: () => { },
 	signOut: () => { },
 });
@@ -86,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	};
 
 	return (
-		<AuthContext.Provider value={{ isSignedIn, signIn, signOut, loadingAuth }}>
+		<AuthContext.Provider value={{ isSignedIn, signIn, signOut, loadingAuth, gapiInitialized }}>
 			{children}
 		</AuthContext.Provider>
 	);
