@@ -157,27 +157,16 @@ describe("GoogleDriveRegistroRepository", () => {
       jest.spyOn(repository, "getAll").mockResolvedValue([currentMonthMatch, previousMonthMatch, otherRegistro]);
       (gapi.client.request as jest.Mock).mockResolvedValue({});
 
-      const newValue = makeRegistro("x", {
-        descricao: "updated",
-        valor: 200,
-        ehPago: true,
-        categoria: "new-cat",
-      });
+      const updatedRegistries = [
+        { ...currentMonthMatch, descricao: "updated", valor: 200, ehPago: true, categoria: "new-cat" },
+        previousMonthMatch,
+        otherRegistro,
+      ];
 
-      await repository.updateAllIdComum(commonId, newValue);
+      await repository.updateAllIdComum(updatedRegistries);
 
       const requestBody = JSON.parse((gapi.client.request as jest.Mock).mock.calls[0][0].body);
-      expect(requestBody).toEqual([
-        expect.objectContaining({
-          id: "1",
-          descricao: "updated",
-          valor: 200,
-          ehPago: true,
-          categoria: "new-cat",
-        }),
-        expect.objectContaining({ id: "2", descricao: "old", valor: 50 }),
-        expect.objectContaining({ id: "3", descricao: "keep" }),
-      ]);
+      expect(requestBody).toEqual(updatedRegistries.map(serializeRegistro));
     });
   });
 });

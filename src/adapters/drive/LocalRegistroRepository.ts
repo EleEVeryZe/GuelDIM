@@ -1,4 +1,4 @@
-import { RegistroRepository } from "../../domain/repositories/RegistroRepository";
+import { RegistroRepository } from "../../application/outPort/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
 import localData from './../../../public/data.json';
 
@@ -49,7 +49,7 @@ export class LocalRegistroRepository implements RegistroRepository {
         return [{ id: "", name: LocalRegistroRepository.fileIdVlr }];
     }
 
-    updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">): Promise<any> {
-        throw new Error("Method not implemented.");
+    async updateAllIdComum(registros: Registro[]): Promise<void> {
+        this.data = registros;
     }
 }

@@ -1,4 +1,4 @@
-import { InvestmentRepository } from "../repositories/InvestmentRepository";
+import { InvestmentRepository } from "../../application/outPort/InvestmentRepository";
 import { Investment } from "../entities/Investment";
 
 export class InvestmentUseCase {

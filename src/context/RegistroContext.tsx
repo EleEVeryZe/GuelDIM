@@ -39,7 +39,7 @@ export const RegistroProvider: React.FC<Props> = ({ children }) => {
 
   return (
     <RegistroContext.Provider value={{ useCase, isLoadingFile: loading }}>
-      {children}
+      {useCase && children}
     </RegistroContext.Provider>
   );
 };

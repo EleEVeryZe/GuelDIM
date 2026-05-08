@@ -1,4 +1,4 @@
-import { InvestmentOperation } from "../entities/Investment";
+import { InvestmentOperation } from "../../domain/entities/Investment";
 
 export interface InvestmentOperationRepository {
   getAll(fileId: string): Promise<InvestmentOperation[]>;

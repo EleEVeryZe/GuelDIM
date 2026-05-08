@@ -32,22 +32,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
 import { GoogleDriveInvestmentRepository } from "../../adapters/drive/GoogleDriveInvestmentRepository";
 import { InvestmentUseCase } from "../../domain/usecases/InvestmentUseCase";
-import {
-  containsSalario,
-  obterPorcentagemDaCompra,
-  obterPorcentagemPorCategoria,
-  obterPorcentagemSemanalDaCompra,
-  obterRestante,
-} from "../../domain/services/FinanceService";
 import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
-import filterModule from "./components/Filter.module";
 import "./components/filter.css";
 import InvestmentTable from "./InvestmentTable";
 
@@ -119,6 +111,14 @@ export default function MainTable() {
   const [currentTab, setCurrentTab] = useState(0);
   const [investmentFileId, setInvestmentFileId] = useState("");
 
+  const [filtros, setFiltros] = useState({
+    filtro_ano: dayjs().format("YYYY"),
+    filtro_meses: "",
+    filtro_descricao: "",
+    filtro_fonte: "",
+    showPagos: true,
+  });
+
   const formatCategoria = (categoria: string | null | undefined): string => {
     if (!categoria) return "";
 
@@ -138,19 +138,18 @@ export default function MainTable() {
     }
   };
 
-  const { filtros, setFiltros } = filterModule(
-    rows,
-    showPagos,
-    setFilteredRows
-  );
+  useEffect(() => {
+    const subscription = useCase.getFiltered$().subscribe((filteredData) => {
+      setFilteredRows(filteredData);
+    });
+    return () => subscription.unsubscribe();
+  }, [useCase]);
 
   const add = async () => {
     try {
       if (isCallingAPI) return;
       setIsCallingAPI(true);
-      const parsedNewRow = await useCase.add(newRow);
-      const newRows = [...rows, ...parsedNewRow];
-      setRows(newRows);
+      await useCase.add(newRow);
       setShowAddOrUpdateComponent(false);
     } catch (err) {
       alert(
@@ -214,7 +213,7 @@ export default function MainTable() {
 
   useEffect(() => {
     if (localStorage.getItem("filtro"))
-      setFiltros(JSON.parse(localStorage.getItem("filtro")));
+      handleFilterChange(JSON.parse(localStorage.getItem("filtro")));
   }, [isLoading]);
 
   const getPersisted = async () => {
@@ -262,24 +261,11 @@ export default function MainTable() {
           .map((filtered) => ({ ...filtered, ehPago: isPagar }));
 
         await useCase.update(modifiedItems);
-        setFilteredRows(
-          filteredRows.map((filtered) =>
-            selectedItems.indexOf(filtered.id) !== -1
-              ? { ...filtered, ehPago: isPagar }
-              : filtered
-          )
-        );
-        setSelectedItems([]);
       };
 
       const executarIndividual = async () => {
         const updatedRow = { ...row, ehPago: !row.ehPago };
         await useCase.update([updatedRow]);
-        setFilteredRows(
-          filteredRows.map((filtered) =>
-            filtered.id !== row.id ? filtered : updatedRow
-          )
-        );
       };
 
       if (row) await executarIndividual();
@@ -294,9 +280,10 @@ export default function MainTable() {
     }
   };
 
-  useEffect(() => {
-    console.log(filteredRows);
-  }, [filteredRows]);
+  const handleFilterChange = (newFiltros: typeof filtros) => {
+    setFiltros(newFiltros);
+    useCase.updateFilters(newFiltros);
+  };
 
   return (
     <div>
@@ -314,7 +301,7 @@ export default function MainTable() {
                 ...filtros,
                 filtro_meses: newVlr,
               };
-              setFiltros(newFiltro);
+              handleFilterChange(newFiltro);
               localStorage.setItem("filtro", JSON.stringify(newFiltro));
             }}
           />
@@ -331,7 +318,7 @@ export default function MainTable() {
             <AddIcon />
           </Fab>
           <Filter
-            setFiltros={setFiltros}
+            setFiltros={handleFilterChange}
             filtros={filtros}
             fonteList={fonteList}
             setModalOpen={setModalOpen}
@@ -425,7 +412,7 @@ export default function MainTable() {
                         ...newRow,
                         valor:
                           newRow.descricao.indexOf(":") !== -1 ||
-                            containsSalario(newRow.descricao)
+                            useCase.registroFilterService.getFinanceService().containsSalario(newRow.descricao)
                             ? -1 * parseFloat(e.target.value.replace(",", "."))
                             : parseFloat(e.target.value.replace(",", ".")),
                       })
@@ -508,11 +495,11 @@ export default function MainTable() {
                 </TableCell>
                 <TableCell colSpan={2}>
                   % do Total:
-                  {obterPorcentagemDaCompra(newRow, filteredRows)}
+                  {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow), [newRow, filteredRows])}
                 </TableCell>
                 <TableCell colSpan={2}>
                   % do total Semanal:
-                  {obterPorcentagemSemanalDaCompra(newRow, filteredRows)}
+                  {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow), [newRow, filteredRows])}
                 </TableCell>
               </Box>
             </Box>
@@ -543,64 +530,20 @@ export default function MainTable() {
                   <TableCell colSpan={11}>
                     <Box display="block" justifyContent="space-around" flexWrap="wrap">
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Despesas fixas(35%): {obterPorcentagemPorCategoria(filteredRows, "despesas_fixas")}</span>
-                        <span>Lazer(30%): {obterPorcentagemPorCategoria(filteredRows, "lazer")}</span>
-                        <span>Despesas variáveis(15%): {obterPorcentagemPorCategoria(filteredRows, "despesas_variaveis")}</span>
-                        <span>Poupança(20%): {obterPorcentagemPorCategoria(filteredRows, "poupanca")}</span>
+                        <span>Despesas fixas(35%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"), [filteredRows])}</span>
+                        <span>Lazer(30%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer"), [filteredRows])}</span>
+                        <span>Despesas variáveis(15%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"), [filteredRows])}</span>
+                        <span>Poupança(20%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca"), [filteredRows])}</span>
                       </Box>
 
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Restante: {obterRestante(filteredRows)}</span>
-                        <span>A ser investido: {(() => {
-                          const totalSalario = filteredRows
-                            .filter((x) => containsSalario(x.descricao))
-                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                          const result = -1 * (0.2 * totalSalario);
-                          return result.toFixed(2);
-                        })()}</span>
-                        <span>Restante - Invest: {(() => {
-                          const totalSalario = filteredRows
-                            .filter((x) => containsSalario(x.descricao))
-                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                          const totalInvestimento = -1 * (0.2 * totalSalario);
-                          const minhasDespesas = parseFloat(
-                            filteredRows
-                              .filter((x) => !containsSalario(x.descricao))
-                              .reduce((a, c) => {
-                                return (parseFloat(a as any) +
-                                  parseFloat(
-                                    c.valor > 0 ? c.valor : (0 as any)
-                                  )) as any;
-                              }, 0)
-                          );
-                          const result =
-                            -1 * totalSalario - minhasDespesas - totalInvestimento;
-                          return result.toFixed(2);
-                        })()}</span>
-                        <span>Minhas despesas: {parseFloat(
-                          filteredRows
-                            .filter((x) => !containsSalario(x.descricao))
-                            .reduce((a, c) => {
-                              return (parseFloat(a as any) +
-                                parseFloat(c.valor > 0 ? c.valor : (0 as any))) as any;
-                            }, 0)
-                        ).toFixed(2)}</span>
-                        <span>Salário: {(() => {
-                          const totalSalario = filteredRows
-                            .filter((x) => containsSalario(x.descricao))
-                            .reduce((a, c) => a + parseFloat(c.valor as any), 0);
-                          const result = -1 * totalSalario;
-                          return result.toFixed(2);
-                        })()}</span>
+                        <span>Restante: {useMemo(() => useCase.registroFilterService.getFinanceService().obterRestante(), [filteredRows]).toFixed(2)}</span>
+                        <span>A ser investido: {useMemo(() => useCase.registroFilterService.getFinanceService().obterTotalInvestimento(), [filteredRows]).toFixed(2)}</span>
+                        <span>Restante - Invest: {useMemo(() => useCase.registroFilterService.getFinanceService().obterRestanteMenosInvestimento(), [filteredRows]).toFixed(2)}</span>
+                        <span>Minhas despesas: {useMemo(() => useCase.registroFilterService.getFinanceService().obterMinhasDespesas(), [filteredRows]).toFixed(2)}</span>
+                        <span>Salário: {(-1 * useMemo(() => useCase.registroFilterService.getFinanceService().obterTotalSalario(), [filteredRows])).toFixed(2)}</span>
 
-                        <span>Soma: {parseFloat(
-                          filteredRows
-                            .filter((x) => !containsSalario(x.descricao))
-                            .reduce((a, c) => {
-                              return (parseFloat(a as any) +
-                                Math.abs(parseFloat(c.valor as any))) as any;
-                            }, 0)
-                        ).toFixed(2)}</span>
+                        <span>Soma: {useMemo(() => useCase.registroFilterService.getFinanceService().obterSomaDespesasAbsolutas(), [filteredRows]).toFixed(2)}</span>
                       </Box>
                     </Box>
                   </TableCell>

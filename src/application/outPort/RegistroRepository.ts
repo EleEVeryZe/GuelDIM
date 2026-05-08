@@ -1,4 +1,4 @@
-import { Registro } from "../entities/Registro";
+import { Registro } from "../../domain/entities/Registro";
 
 export abstract class RegistroRepository {
   abstract fileId: string;
@@ -15,5 +15,5 @@ export abstract class RegistroRepository {
   abstract add(registros: Registro[]): Promise<void>;
   abstract update(registros: Registro[]): Promise<void>;
   abstract remove(registroId: string): Promise<void>;
-  abstract updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago">): Promise<any>;
+  abstract updateAllIdComum(registros: Registro[]): Promise<void>;
 }

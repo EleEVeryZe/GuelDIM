@@ -1,7 +1,6 @@
 import { gapi } from "gapi-script";
-import { RegistroRepository } from "../../domain/repositories/RegistroRepository";
+import { RegistroRepository } from "../../application/outPort/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
-import dayjs from "dayjs";
 import data from './../../../public/data.json';
 
 export class GoogleDriveRegistroRepository implements RegistroRepository {
@@ -12,23 +11,13 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
     this.fileId = fileId
   }
 
-  async updateAllIdComum(idCommon: string, newValue: Registro) {
-    const existing = await this.getAll();
-
-    const updatedRegistries = existing.map(oldVlr => {
-      if (oldVlr.idComum == idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf('month'))) {
-        const { descricao, valor, ehPago, categoria } = newValue;
-        return { ...oldVlr, descricao, valor, ehPago, categoria };
-      }
-      return oldVlr;
-    });
-
-    return gapi.client.request({
+  async updateAllIdComum(registros: Registro[]): Promise<void> {
+    await gapi.client.request({
       path: `/upload/drive/v3/files/${this.fileId}`,
       method: "PATCH",
       params: { uploadType: "media" },
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedRegistries),
+      body: JSON.stringify(registros),
     });
   }
 

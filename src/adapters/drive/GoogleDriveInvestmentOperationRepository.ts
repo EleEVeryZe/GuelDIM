@@ -1,5 +1,5 @@
 import { gapi } from "gapi-script";
-import { InvestmentOperationRepository } from "../../domain/repositories/InvestmentOperationRepository";
+import { InvestmentOperationRepository } from "../../application/outPort/InvestmentOperationRepository";
 import { InvestmentOperation } from "../../domain/entities/Investment";
 
 export class GoogleDriveInvestmentOperationRepository implements InvestmentOperationRepository {
