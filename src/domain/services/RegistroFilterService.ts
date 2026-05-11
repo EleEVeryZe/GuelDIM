@@ -55,6 +55,12 @@ export class RegistroFilterService implements RegistroFilterInPort {
         return latest;
     }
 
+    getFilteredWithoutMonthFilter(): Registro[] {
+        const currentFilters = this.filters$.getValue();
+        const filtersWithoutMonth = { ...currentFilters, filtro_meses: "" };
+        return this.applyFiltering(this.registros$.getValue(), filtersWithoutMonth);
+    }
+
     filterBy(filter: string): void {
         this.updateFilters({ filtro_descricao: filter });
     }

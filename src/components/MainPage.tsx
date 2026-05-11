@@ -5,11 +5,10 @@ import { RegistroProvider, useRegistro } from "../context/RegistroContext";
 import Apresentacao from "./apresentacao/apresentacao";
 import MainTable from "./mainTable/MainTable";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { signOut } from "../services/googleApi";
 
 const MainPage: React.FC = () => {
   const { isLoadingFile } = useRegistro();
-  const { signIn } = useContext(AuthContext);
+  const { signIn, signOut } = useContext(AuthContext);
 
   if (isLoadingFile)
     return (

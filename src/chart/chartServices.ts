@@ -1,23 +1,25 @@
 import dayjs from "dayjs";
 import { Registro } from "../interfaces/interfaces";
-import { containsSalario, obterRestante, obterRestanteMenosInvestimento, obterTotalInvestimento } from "../services/registros/registrosServices";
+import { RegistroUseCase } from "../domain/usecases/RegistroUseCase";
+import { FinanceService } from "../domain/services/FinanceService";
 
 export class ChartData {
-    data: Registro[];
-    constructor(data: Registro[]) {
-        this.data = data;
+    private monthRange: {init: number, fin: number} | null = null;
+
+    constructor(private useCase: RegistroUseCase) {
     }
 
     private readonly sumValor = (groupedByData: { [key: string]: Registro[] }) => {
         let acumulado = 0;
         return Object.keys(groupedByData).map((mesAno) => 
             {
-                acumulado += parseFloat(this.isDateInTheFuture(mesAno) ? obterTotalInvestimento(groupedByData[mesAno]) : obterRestante(groupedByData[mesAno]));
+                const financeService = new FinanceService(groupedByData[mesAno]);
+                acumulado += this.isDateInTheFuture(mesAno) ? financeService.obterTotalInvestimento() : financeService.obterRestante();
                 return {
                     descricao: mesAno,
-                    valor: obterRestante(groupedByData[mesAno]),
-                    valorMenosInvestimento: obterRestanteMenosInvestimento(groupedByData[mesAno]),
-                    acumulado: acumulado.toFixed(2)
+                    valor: financeService.obterRestante(),
+                    valorMenosInvestimento: financeService.obterRestanteMenosInvestimento(),
+                    acumulado: acumulado
                 }
             }, {}
         )
@@ -44,8 +46,14 @@ export class ChartData {
         , {});
     }
 
-    public formatData = () : { data: { [key: string]: Registro[] }, sumValor: () => void, removeSalary: () => void } => {
-        const groupedByData = this.groupByDateItems(this.data);
+    public formatData = () : { data: { [key: string]: Registro[] }, sumValor: () => Array<{ descricao: string; valor: number; valorMenosInvestimento: number; acumulado: number; }>, removeSalary: () => { [key: string]: Registro[] } } => {
+        let data = this.useCase.registroFilterService.getFilteredWithoutMonthFilter();
+        if (this.monthRange) {
+            const initDayJs = dayjs().subtract(this.monthRange.init, "month").startOf("month");
+            const finDayJs = dayjs().add(this.monthRange.fin, "month").endOf("month");
+            data = data.filter(reg => dayjs(reg.dtCorrente).isAfter(initDayJs) && dayjs(reg.dtCorrente).isBefore(finDayJs));
+        }
+        const groupedByData = this.groupByDateItems(data);
 
         return {
             data: groupedByData,
@@ -54,26 +62,16 @@ export class ChartData {
         }
     }
 
-    /**
-     * Exclui os registros anteriores a initMes atrás e posteriores a finMes a frente.
-     * ex: init: 3 meses anteriores e fin: 4 posteriores =>  Se hoje fosse mes 6 iria mostrar no inicio março até outubro
-     */
     public setMonthRange = (initMes: number, finMes: number) => {        
-        const initDayJs = dayjs().subtract(initMes, "month").startOf("month");
-        const finDayJs = dayjs().add(finMes, "month").endOf("month");
-        this.data = this.data.filter(reg => dayjs(reg.dtCorrente).isAfter(initDayJs) && dayjs(reg.dtCorrente).isBefore(finDayJs));
+        this.monthRange = {init: initMes, fin: finMes};
         return this;
     }
 
-    private readonly removeSalary = () => {
-        this.data = this.data.filter(reg => !containsSalario(reg.descricao));
-        return this;
-    }
-
-    private readonly getPassedHistory = (initMes: number) => {
-        const initDayJs = dayjs().subtract(initMes, "month");
-        const todaysMonth = dayjs().month();
-        return this.data.filter(reg => dayjs(reg.dtCorrente).isAfter(initDayJs) && dayjs(reg.dtCorrente).isBefore(todaysMonth));
-        
+    private readonly removeSalary = (groupedByData: { [key: string]: Registro[] }) => {
+        // Remove salary from grouped data
+        Object.keys(groupedByData).forEach(key => {
+            groupedByData[key] = groupedByData[key].filter(reg => !reg.descricao.toLowerCase().includes('salario'));
+        });
+        return groupedByData;
     }
 }

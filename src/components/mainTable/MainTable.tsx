@@ -237,6 +237,15 @@ export default function MainTable() {
 
   const deleteRow = async (id: string) => {
     await useCase.remove(id);
+
+
+    let contador = 1;
+
+    while (contador < 10){
+      console.log(contador);
+      contador++;
+    }
+
   };
 
   const insertOrRemoveSelectedItems = (isInsert: boolean, items: string[]) => {
@@ -295,7 +304,7 @@ export default function MainTable() {
       {currentTab === 0 && (
         <>
           <MyBarChart
-            data={rows}
+            useCase={useCase}
             setFilteredMonth={(newVlr) => {
               const newFiltro = {
                 ...filtros,

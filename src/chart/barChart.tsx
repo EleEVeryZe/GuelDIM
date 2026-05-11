@@ -1,4 +1,4 @@
-import { TextField } from "@mui/material";
+import { Slider, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import {
   Bar,
@@ -12,53 +12,78 @@ import {
 } from "recharts";
 import { Registro } from "../interfaces/interfaces";
 import { ChartData } from "./chartServices";
+import { RegistroUseCase } from "../domain/usecases/RegistroUseCase";
 
-export default function MyBarChart({ data, setFilteredMonth }: { data: Registro[], setFilteredMonth: any }) {
-  const [processedData, setProcessedData] = useState();
-  const chartService = useRef(null);
-  const [de, setDe] = useState("");
-  const [ate, setAte] = useState("");
+type MonthRange = { de: number; ate: number };
 
-  
+function MonthRangePicker({ range, onChange }: { range: MonthRange; onChange: (next: MonthRange) => void }) {
+  const handleSliderChange = (_event: Event, value: number | number[]) => {
+    if (Array.isArray(value)) {
+      onChange({ de: value[0], ate: value[1] });
+    }
+  };
+
+  return (
+    <Stack spacing={2} mb={2}>
+      <Stack direction="row" spacing={4} alignItems="center">
+        <Typography variant="body2" color="textSecondary">
+          De: {range.de}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Até: {range.ate}
+        </Typography>
+      </Stack>
+      <Slider
+        value={[range.de, range.ate]}
+        onChange={handleSliderChange}
+        valueLabelDisplay="auto"
+        min={0}
+        max={12}
+        step={1}
+        marks
+      />
+    </Stack>
+  );
+}
+
+export default function MyBarChart({ useCase, setFilteredMonth }: { useCase: RegistroUseCase, setFilteredMonth: any }) {
+  const [processedData, setProcessedData] = useState<any[]>([]);
+  const chartService = useRef<ChartData | null>(null);
+  const [range, setRange] = useState<MonthRange>({ de: 3, ate: 3 });
+
+  const updateRange = (nextRange: MonthRange) => {
+    setRange(nextRange);
+    localStorage.setItem("grafico", JSON.stringify(nextRange));
+  };
+
   useEffect(() => {
-    chartService.current = new ChartData(data);
-    const currentRange =  JSON.parse(localStorage.getItem("grafico"));
-    setDe(currentRange?.de.length ? currentRange?.de : 3);
-    setAte(currentRange?.ate.length ? currentRange?.ate : 3);
-  }, [data]);
-
-  useEffect(() => {
+    chartService.current = new ChartData(useCase);
+    const currentRange = JSON.parse(localStorage.getItem("grafico") || "{}");
+    const initialRange = {
+      de: Number(currentRange?.de) || 3,
+      ate: Number(currentRange?.ate) || 3,
+    };
+    setRange(initialRange);
     setProcessedData(
-      chartService.current.setMonthRange(de.length ? de : 3, ate.length ? ate : 3).formatData().sumValor()
+      chartService.current.setMonthRange(initialRange.de, initialRange.ate).formatData().sumValor()
     );
-  }, [de, ate, data]);
+  }, [useCase]);
+
+  useEffect(() => {
+    const subscription = useCase.getFiltered$().subscribe(() => {
+      if (!chartService.current) return;
+      setProcessedData(
+        chartService.current.setMonthRange(range.de, range.ate).formatData().sumValor()
+      );
+    });
+    return () => subscription.unsubscribe();
+  }, [useCase, range.de, range.ate]);
 
   return (
     <>
-      <TextField
-        id="outlined-basic"
-        label="De"
-        className="full-width flex-2"
-        variant="outlined"
-        value={de}
-        type="number"
-        onChange={(e) => {
-          setDe(e.target.value)
-          localStorage.setItem("grafico", JSON.stringify({de: e.target.value, ate}));
-        }}
-      />
-
-      <TextField
-        id="outlined-basic"
-        label="Ate"
-        value={ate}
-        className="full-width flex-2"
-        variant="outlined"
-        type="number"
-        onChange={(e) => {
-          setAte(e.target.value);
-          localStorage.setItem("grafico", JSON.stringify({de, ate: e.target.value}));
-        }}
+      <MonthRangePicker
+        range={range}
+        onChange={updateRange}
       />
       <ResponsiveContainer width={"100%"} height={300}>
         <BarChart
