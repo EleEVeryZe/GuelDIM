@@ -2,13 +2,49 @@ import { gapi } from "gapi-script";
 import { RegistroRepository } from "../../application/outPort/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
 import data from './../../../public/data.json';
+import dayjs from "dayjs";
+import minMax from "dayjs/plugin/minMax";
+import 'dayjs/locale/pt-br'
+
+dayjs.extend(minMax);
+dayjs.locale('pt-br');
 
 export class GoogleDriveRegistroRepository implements RegistroRepository {
-  static GOOGLEDRIVE_FILE_NAME = 'financeiro040520261.geldIn'; 
+  static GOOGLEDRIVE_FILE_NAME = 'financeiro040520261.geldIn';
   fileId: string;
+  private cachedRegistries: Registro[];
+  private isCacheStale = false;
 
   constructor(fileId: string) {
     this.fileId = fileId
+  }
+
+  async getLastUpdate() {
+    const regs = await this.getAll();
+
+    if (!regs || regs.length === 0) {
+      return null;
+    }
+
+    const latestRecord = regs.reduce((latest, current) => {
+      if (!current.dtEfetiva) return latest;
+
+      const currentDate = dayjs(current.dtEfetiva);
+
+      if (!currentDate.isValid()) return latest;
+
+      if (!latest) return current;
+
+      const latestDate = dayjs(latest.dtEfetiva);
+
+      if (currentDate.isAfter(latestDate)) {
+        return current;
+      }
+
+      return latest;
+    }, null);
+
+    return latestRecord;
   }
 
   async updateAllIdComum(registros: Registro[]): Promise<void> {
@@ -22,6 +58,8 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
   }
 
   async getAll(): Promise<Registro[]> {
+    if (!this.isCacheStale && this.cachedRegistries && this.cachedRegistries.length > 0) return this.cachedRegistries;
+
     try {
       const response = await gapi.client.drive.files.get({
         fileId: this.fileId,
@@ -32,7 +70,9 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
         return [];
       }
 
-      return JSON.parse(response.body) as Registro[];
+      this.cachedRegistries = JSON.parse(response.body) as Registro[];
+      this.isCacheStale = false;
+      return this.cachedRegistries;
     } catch (error) {
       console.error("Error while retrieving data from Google Drive", error);
       alert("Não foi possível obter arquivo")
@@ -50,6 +90,7 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(merged),
     });
+    this.isCacheStale = true;
   }
 
   async update(registros: Registro[]): Promise<void> {
@@ -63,6 +104,7 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(merged),
     });
+    this.isCacheStale = true;
   }
 
   async remove(registroId: string): Promise<void> {
@@ -75,6 +117,7 @@ export class GoogleDriveRegistroRepository implements RegistroRepository {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(filtered),
     });
+    this.isCacheStale = true;
   }
 
   public static async createFile(name: string, initialContent: string): Promise<{ id: string }> {

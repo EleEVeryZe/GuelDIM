@@ -1,5 +1,5 @@
 import { Observable } from "rxjs";
-import { Registro } from "@/src/domain/entities/Registro";
+import { Registro } from "@/domain/entities/Registro";
 
 export interface RegistroFilterInPort {
     /**

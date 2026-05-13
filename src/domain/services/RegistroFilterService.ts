@@ -1,7 +1,7 @@
 import { BehaviorSubject, Observable, combineLatest } from "rxjs";
 import { map } from "rxjs/operators";
 import dayjs from "dayjs";
-import { RegistroFilterInPort } from "@/src/application/inPort/RegistroFilterInPort";
+import { RegistroFilterInPort } from "@/application/inPort/RegistroFilterInPort";
 import { Registro } from "../entities/Registro";
 import { FinanceService } from "./FinanceService";
 
@@ -48,6 +48,35 @@ export class RegistroFilterService implements RegistroFilterInPort {
     getFiltered$(): Observable<Registro[]> {
         return this.filteredRegistros$;
     }
+
+    getLastUpdate() {
+        const regs = this.getFiltered();
+
+        if (!regs || regs.length === 0) {
+            return null;
+        }
+
+        const latestRecord = regs.reduce((latest, current) => {
+            if (!current.dtEfetiva) return latest;
+
+            const currentDate = dayjs(current.dtEfetiva);
+
+            if (!currentDate.isValid()) return latest;
+
+            if (!latest) return current;
+
+            const latestDate = dayjs(latest.dtEfetiva);
+
+            if (currentDate.isAfter(latestDate)) {
+                return current;
+            }
+
+            return latest;
+        }, null);
+
+        return latestRecord;
+    }
+
 
     getFiltered(): Registro[] {
         let latest: Registro[] = [];

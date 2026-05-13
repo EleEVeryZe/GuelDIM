@@ -1,4 +1,4 @@
-import { Registro } from "@/src/interfaces/interfaces";
+import { Registro } from "@/interfaces/interfaces";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 
