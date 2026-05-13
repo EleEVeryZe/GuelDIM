@@ -1,4 +1,4 @@
-import { Registro } from "@/src/interfaces/interfaces";
+import { Registro } from "@/interfaces/interfaces";
 import { Box, Button, List, ListItem, Modal, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
 

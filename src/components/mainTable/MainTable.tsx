@@ -32,7 +32,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
@@ -42,6 +42,7 @@ import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
 import "./components/filter.css";
 import InvestmentTable from "./InvestmentTable";
+import IntencaoCompra from '../intencaoCompra';
 
 function createData(
   id: string,
@@ -73,6 +74,8 @@ const initialRows = [] as Registro[];
 
 export default function MainTable() {
   const { useCase } = useRegistro();
+  const [lastUpdated, setLastUpdated] = useState<Registro>()
+  const lastUpdatedRef = useRef<Registro>();
   const [selectedItems, setSelectedItems] = useState([] as string[]);
   const [showPagos, setShowPagos] = useState(true);
   const [pagarRegistrosFiltrados, setPagarRegistrosFiltrados] = useState(false);
@@ -119,6 +122,43 @@ export default function MainTable() {
     showPagos: true,
   });
 
+  const porcentagemCompra = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow);
+  }, [newRow, useCase]);
+
+  const porcentagemSemanal = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow);
+  }, [newRow, useCase]);
+
+  const catFixas = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas");
+  }, [filteredRows, useCase]);
+
+  const catLazer = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer");
+  }, [filteredRows, useCase]);
+
+  const catVariaveis = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis");
+  }, [filteredRows, useCase]);
+
+  const catPoupanca = useMemo(() => {
+    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca");
+  }, [filteredRows, useCase]);
+
+  const financialSummary = useMemo(() => {
+    const financeService = useCase.registroFilterService.getFinanceService();
+    return {
+      restante: financeService.obterRestante(),
+      totalInvestimento: financeService.obterTotalInvestimento(),
+      restanteMenosInvestimento: financeService.obterRestanteMenosInvestimento(),
+      minhasDespesas: financeService.obterMinhasDespesas(),
+      totalSalario: financeService.obterTotalSalario(),
+      somaDespesasAbsolutas: financeService.obterSomaDespesasAbsolutas(),
+    };
+  }, [filteredRows, useCase]);
+  // ==========================================
+
   const formatCategoria = (categoria: string | null | undefined): string => {
     if (!categoria) return "";
 
@@ -129,7 +169,7 @@ export default function MainTable() {
       case "lazer":
         return "Lazer";
       case "despesas_variaveis":
-        return "Despesas variáveis";
+        return "Despesas variables";
       case "poupanca":
       case "poupança":
         return "Poupança";
@@ -140,6 +180,8 @@ export default function MainTable() {
 
   useEffect(() => {
     const subscription = useCase.getFiltered$().subscribe((filteredData) => {
+      useCase.getLastUpdate().then((lastUpdated: Registro) => lastUpdatedRef.current = lastUpdated)
+      setLastUpdated(useCase.registroFilterService.getLastUpdate());
       setFilteredRows(filteredData);
     });
     return () => subscription.unsubscribe();
@@ -238,14 +280,11 @@ export default function MainTable() {
   const deleteRow = async (id: string) => {
     await useCase.remove(id);
 
-
     let contador = 1;
-
-    while (contador < 10){
+    while (contador < 10) {
       console.log(contador);
       contador++;
     }
-
   };
 
   const insertOrRemoveSelectedItems = (isInsert: boolean, items: string[]) => {
@@ -483,8 +522,8 @@ export default function MainTable() {
                         setNewRow({ ...newRow, fonte: e.target.value })
                       }
                     >
-                      {fonteList.map((ftItem) => (
-                        <MenuItem value={ftItem}>{ftItem}</MenuItem>
+                      {fonteList.map((ftItem, i) => (
+                        <MenuItem key={i} value={ftItem}>{ftItem}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -503,12 +542,10 @@ export default function MainTable() {
                   {newRow.valor * newRow.qtdParc}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do Total:
-                  {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow), [newRow, filteredRows])}
+                  % do Total: {porcentagemCompra}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do total Semanal:
-                  {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow), [newRow, filteredRows])}
+                  % do total Semanal: {porcentagemSemanal}
                 </TableCell>
               </Box>
             </Box>
@@ -539,20 +576,29 @@ export default function MainTable() {
                   <TableCell colSpan={11}>
                     <Box display="block" justifyContent="space-around" flexWrap="wrap">
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Despesas fixas(35%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"), [filteredRows])}</span>
-                        <span>Lazer(30%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer"), [filteredRows])}</span>
-                        <span>Despesas variáveis(15%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"), [filteredRows])}</span>
-                        <span>Poupança(20%): {useMemo(() => useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca"), [filteredRows])}</span>
+                        <span>Despesas fixas(35%): {catFixas}</span>
+                        <span>Lazer(30%): {catLazer}</span>
+                        <span>Despesas variáveis(15%): {catVariaveis}</span>
+                        <span>Poupança(20%): {catPoupanca}</span>
                       </Box>
 
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Restante: {useMemo(() => useCase.registroFilterService.getFinanceService().obterRestante(), [filteredRows]).toFixed(2)}</span>
-                        <span>A ser investido: {useMemo(() => useCase.registroFilterService.getFinanceService().obterTotalInvestimento(), [filteredRows]).toFixed(2)}</span>
-                        <span>Restante - Invest: {useMemo(() => useCase.registroFilterService.getFinanceService().obterRestanteMenosInvestimento(), [filteredRows]).toFixed(2)}</span>
-                        <span>Minhas despesas: {useMemo(() => useCase.registroFilterService.getFinanceService().obterMinhasDespesas(), [filteredRows]).toFixed(2)}</span>
-                        <span>Salário: {(-1 * useMemo(() => useCase.registroFilterService.getFinanceService().obterTotalSalario(), [filteredRows])).toFixed(2)}</span>
-
-                        <span>Soma: {useMemo(() => useCase.registroFilterService.getFinanceService().obterSomaDespesasAbsolutas(), [filteredRows]).toFixed(2)}</span>
+                        <span>Restante: {financialSummary.restante.toFixed(2)}</span>
+                        <span>A ser investido: {financialSummary.totalInvestimento.toFixed(2)}</span>
+                        <span>Restante - Invest: {financialSummary.restanteMenosInvestimento.toFixed(2)}</span>
+                        <span>Minhas despesas: {financialSummary.minhasDespesas.toFixed(2)}</span>
+                        <span>Salário: {(-1 * financialSummary.totalSalario).toFixed(2)}</span>
+                        <span>Soma: {financialSummary.somaDespesasAbsolutas.toFixed(2)}</span>
+                      </Box>
+                      <Box>
+                        {
+                          lastUpdated &&
+                          <span style={{marginRight: 45}}>Atualizado: {`${lastUpdated.descricao.slice(0, 10)} - ${dayjs(lastUpdated.dtEfetiva).format('HH:mm DD-MM-YYYY')} - R$${lastUpdated.valor}`}</span>
+                        }
+                        {
+                          lastUpdatedRef.current &&
+                          <span>Atualizado Total: {`${lastUpdatedRef.current.descricao.slice(0, 10)} - ${dayjs(lastUpdatedRef.current.dtEfetiva).format('HH:mm DD-MM-YYYY')} - R$${lastUpdatedRef.current.valor}`}</span>
+                        }
                       </Box>
                     </Box>
                   </TableCell>
@@ -561,9 +607,8 @@ export default function MainTable() {
               <TableBody>
                 {filteredRows &&
                   filteredRows.map((row, idx) => (
-
                     <TableRow
-                      key={idx}
+                      key={row.id || idx}
                       sx={{
                         "&:last-child td, &:last-child th": { border: 0 },
                         background: row.ehPago ? "#00800038" : "#ffffff",
@@ -572,7 +617,6 @@ export default function MainTable() {
                         },
                       }}
                     >
-
                       <TableCell style={{ padding: "0 4px", minWidth: 48, width: 48, textAlign: "center" }}>
                         <Checkbox
                           onChange={(event) =>
@@ -625,8 +669,8 @@ export default function MainTable() {
                                 ]);
                               }}
                             >
-                              {fonteList.map((ftItem) => (
-                                <MenuItem value={ftItem}>{ftItem}</MenuItem>
+                              {fonteList.map((ftItem, i) => (
+                                <MenuItem key={i} value={ftItem}>{ftItem}</MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -693,16 +737,13 @@ export default function MainTable() {
                               onClick={async () => {
                                 if (editRow === row.id) {
                                   setEditRow("");
-
                                   setIsUpdating(true);
                                   await useCase.updateAllIdComum(row.idComum, row);
                                   setIsUpdating(false);
-
                                 } else setEditRow(row.id);
                               }}
                             />
                         }
-
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
                         <ModeEditIcon
@@ -727,7 +768,6 @@ export default function MainTable() {
                           />
                         )}
                       </TableCell>
-
                       <TableCell style={{ width: 40 }}>
                         <CloseIcon
                           onClick={() => {
@@ -740,7 +780,6 @@ export default function MainTable() {
                       </TableCell>
                     </TableRow>
                   ))
-
                 }
               </TableBody>
             </Table>
@@ -752,10 +791,9 @@ export default function MainTable() {
             setOutsideFonteList={setFonteList}
           />
         </>
-      )
-      }
+      )}
 
       {currentTab === 1 && investmentFileId && <InvestmentTable fileId={investmentFileId} />}
-    </div >
+    </div>
   );
 }

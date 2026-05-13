@@ -18,6 +18,10 @@ export class RegistroUseCase {
     this.registroFilterService.setSourceData(registros);
   }
 
+  getLastUpdate(): Promise<Registro> {
+    return this.repository.getLastUpdate();
+  }
+
   getFiltered$(): Observable<Registro[]> {
     return this.registroFilterService.getFiltered$();
   }
@@ -36,6 +40,7 @@ export class RegistroUseCase {
     try {
       let parsedNewRow: Registro[] = [];
       const idComum = uuidv4();
+      const idComumDevedor = uuidv4();
       const dtEfetiva = dayjs().toISOString();
       let valorTotal = newRow.valor;
 
@@ -61,7 +66,7 @@ export class RegistroUseCase {
               valor: -1 * vlrDivida / newRow.qtdParc,
               dtCorrente: newRow.dtCorrente.add(currentParcela, "months"),
               id: uuidv4(),
-              idComum,
+              idComum: idComumDevedor,
               parcelaAtual: currentParcela + 1,
               dtEfetiva,
               comentario: ""
@@ -102,13 +107,13 @@ export class RegistroUseCase {
   /*
     This functions updates all ocorrence of the registers that matches the idCommon passed as argument
   */
-  async updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago" | "categoria">): Promise<void> {
+  async updateAllIdComum(idCommon: string, newValue: Pick<Registro, "descricao" | "valor" | "ehPago" | "categoria" | "fonte" | "comentario">): Promise<void> {
     const existing = await this.repository.getAll();
 
     const updatedRegistries = existing.map(oldVlr => {
       if (oldVlr.idComum === idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf("month"))) {
-        const { descricao, valor, ehPago, categoria } = newValue;
-        return { ...oldVlr, descricao, valor, ehPago, categoria };
+        const { descricao, valor, ehPago, categoria, fonte, comentario} = newValue;
+        return { ...oldVlr, descricao, valor, ehPago, categoria, fonte, comentario };
       }
       return oldVlr;
     });

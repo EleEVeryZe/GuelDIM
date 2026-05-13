@@ -3,7 +3,7 @@ name: Deploy Static Website to S3
 on:
   push:
     branches:
-      - main  # Runs when code is pushed to main
+      - main  # Runs when code is pushed to the main branch
 
 jobs:
   deploy:
@@ -20,15 +20,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
       - name: Build App
         run: |
-          npm i
+          npm ci
           npm run build
 
-      - name: Sync next files to S3
+      # Step 1: Upload the root files (index.html, vite.svg, etc.) and delete anything old in S3
+      - name: Sync general files to S3
         run: |
-          aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
+          aws s3 sync ./dist s3://${{ secrets.S3_BUCKET_NAME }}/ --exclude "assets/*" --delete
 
+      # Step 2: Upload JavaScript assets forcing the correct application/javascript MIME type
+      - name: Sync JS assets with explicit content-type
+        run: |
+          aws s3 sync ./dist/assets s3://${{ secrets.S3_BUCKET_NAME }}/assets --exclude "*" --include "*.js" --content-type "application/javascript"
+
+      # Step 3: Upload CSS assets forcing the correct text/css MIME type
+      - name: Sync CSS assets with explicit content-type
+        run: |
+          aws s3 sync ./dist/assets s3://${{ secrets.S3_BUCKET_NAME }}/assets --exclude "*" --include "*.css" --content-type "text/css"
+
+      # Step 4: Clear the CloudFront cache completely so the browser fetches the new index.html
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \

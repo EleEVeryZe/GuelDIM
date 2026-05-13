@@ -16,4 +16,5 @@ export abstract class RegistroRepository {
   abstract update(registros: Registro[]): Promise<void>;
   abstract remove(registroId: string): Promise<void>;
   abstract updateAllIdComum(registros: Registro[]): Promise<void>;
+  abstract getLastUpdate(): Promise<Registro>;
 }

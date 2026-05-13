@@ -1,0 +1,16 @@
+[
+  {
+    "id": "79b6c9b3-460b-4655-846a-77e8df2f42a1",
+    "produto": {
+      "nome": "PlayStation 5 Slim",
+      "descricao": "Edição Digital",
+      "marca": "Sony",
+      "modelo": "CFI-2000",
+      "ano": 2023,
+      "ehNovo": true,
+      "midias": []
+    },
+    "cotacoes": [],
+    "efetivados": []
+  }
+]

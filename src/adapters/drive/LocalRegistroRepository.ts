@@ -12,6 +12,9 @@ export class LocalRegistroRepository implements RegistroRepository {
         this.fileId = LocalRegistroRepository.fileIdVlr;
         this.data = localData as unknown as Registro[];
     }
+    getLastUpdate(): Promise<Registro> {
+        throw new Error("Method not implemented.");
+    }
 
     public static getInstance(): LocalRegistroRepository {
         if (!LocalRegistroRepository.instance) {
