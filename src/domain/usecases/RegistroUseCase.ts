@@ -26,7 +26,7 @@ export class RegistroUseCase {
     return this.registroFilterService.getFiltered$();
   }
 
-  updateFilters(filters: Partial<{ filtro_ano: string; filtro_meses: string; filtro_descricao: string; filtro_fonte: string; showPagos: boolean }>): void {
+  updateFilters(filters: Partial<{ filtro_ano: string; filtro_meses: string; filtro_descricao: string; filtro_fonte: string; showPagos: boolean, filtro_categoria: string }>): void {
     this.registroFilterService.updateFilters(filters);
   }
 
@@ -112,7 +112,7 @@ export class RegistroUseCase {
 
     const updatedRegistries = existing.map(oldVlr => {
       if (oldVlr.idComum === idCommon && dayjs(oldVlr.dtCorrente).isAfter(dayjs().startOf("month"))) {
-        const { descricao, valor, ehPago, categoria, fonte, comentario} = newValue;
+        const { descricao, valor, ehPago, categoria, fonte, comentario } = newValue;
         return { ...oldVlr, descricao, valor, ehPago, categoria, fonte, comentario };
       }
       return oldVlr;

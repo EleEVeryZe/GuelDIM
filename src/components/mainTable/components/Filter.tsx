@@ -12,49 +12,49 @@ import "./filter.css";
 const Filter = ({ setFiltros, filtros, fonteList, setModalOpen }) => {
   return (
     <Box className={"bordered"}>
-      <Box className={"d-flex"}> 
-         <Select
-              labelId="select-label-ano"
-              id="select-ano"
-              label="Fonte"
-              value={filtros.filtro_ano}
-              defaultValue="2026"
-              onChange={(e) => {
-                const newFiltro = {
-                  ...filtros,
-                  filtro_ano: e.target.value,
-                };
-                setFiltros(newFiltro);
-                localStorage.setItem("filtro", JSON.stringify(newFiltro));
-              }}
-            >
-              <MenuItem value={""}>TODOS</MenuItem>
-              {["2023","2024","2025","2026","2027"].map((ftItem) => (
-                <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
-              ))}
-            </Select>
+      <Box className={"d-flex"}>
+        <Select
+          labelId="select-label-ano"
+          id="select-ano"
+          label="Fonte"
+          value={filtros.filtro_ano}
+          defaultValue="2026"
+          onChange={(e) => {
+            const newFiltro = {
+              ...filtros,
+              filtro_ano: e.target.value,
+            };
+            setFiltros(newFiltro);
+            localStorage.setItem("filtro", JSON.stringify(newFiltro));
+          }}
+        >
+          <MenuItem value={""}>TODOS</MenuItem>
+          {["2023", "2024", "2025", "2026", "2027"].map((ftItem) => (
+            <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
+          ))}
+        </Select>
 
-            <Select
-              labelId="select-label-mes"
-              id="select-mes"
-              label="Fonte"
-              value={filtros.filtro_meses}
-              defaultValue="1"
-              onChange={(e) => {
-                const newFiltro = {
-                  ...filtros,
-                  filtro_meses: e.target.value,
-                };
-                setFiltros(newFiltro);
-                localStorage.setItem("filtro", JSON.stringify(newFiltro));
-              }}
-            >
-              <MenuItem value={""}>TODOS</MenuItem>
-              {["1","2","3","4","5","6","7","8","9","10","11","12"].map((ftItem) => (
-                <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
-              ))}
-            </Select>
-      
+        <Select
+          labelId="select-label-mes"
+          id="select-mes"
+          label="Fonte"
+          value={filtros.filtro_meses}
+          defaultValue="1"
+          onChange={(e) => {
+            const newFiltro = {
+              ...filtros,
+              filtro_meses: e.target.value,
+            };
+            setFiltros(newFiltro);
+            localStorage.setItem("filtro", JSON.stringify(newFiltro));
+          }}
+        >
+          <MenuItem value={""}>TODOS</MenuItem>
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"].map((ftItem) => (
+            <MenuItem key={ftItem} value={ftItem}>{ftItem}</MenuItem>
+          ))}
+        </Select>
+
         <TextField
           id="outlined-basic"
           value={filtros.filtro_descricao}
@@ -98,10 +98,36 @@ const Filter = ({ setFiltros, filtros, fonteList, setModalOpen }) => {
               ))}
             </Select>
           </FormControl>
+
+          <FormControl size="small">
+            <InputLabel id="demo-select-small-label">Categoria</InputLabel>
+            <Select
+              labelId="select-label"
+              id="select"
+              label="Categoria"
+              sx={{ minWidth: 300 }}
+              value={filtros.filtro_categoria}
+              defaultValue=""
+              onChange={(e) => {
+                const newFiltro = {
+                  ...filtros,
+                  filtro_categoria: e.target.value,
+                };
+                setFiltros(newFiltro);
+                localStorage.setItem("filtro", JSON.stringify(newFiltro));
+              }}
+            >
+              <MenuItem value=""><em>Selecione</em></MenuItem>
+              <MenuItem value="despesas_fixas">Despesas fixas</MenuItem>
+              <MenuItem value="lazer">Lazer</MenuItem>
+              <MenuItem value="despesas_variaveis">Despesas variáveis</MenuItem>
+              <MenuItem value="poupanca">Poupança</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
-        
+
         <AddIcon className="mr-1" onClick={() => setModalOpen(true)} />
-        
+
       </Box>
     </Box>
   );

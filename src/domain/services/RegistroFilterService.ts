@@ -11,6 +11,7 @@ export interface FilterState {
     filtro_descricao: string;
     filtro_fonte: string;
     showPagos: boolean;
+    filtro_categoria: string;
 }
 
 export class RegistroFilterService implements RegistroFilterInPort {
@@ -22,6 +23,7 @@ export class RegistroFilterService implements RegistroFilterInPort {
         filtro_descricao: "",
         filtro_fonte: "",
         showPagos: true,
+        filtro_categoria: "",
     });
 
     private readonly filteredRegistros$: Observable<Registro[]>;
@@ -98,7 +100,7 @@ export class RegistroFilterService implements RegistroFilterInPort {
         if (!registros || registros.length === 0) return [];
 
         let result = [...registros];
-        const { filtro_ano, filtro_meses, filtro_descricao, filtro_fonte, showPagos } = filters;
+        const { filtro_ano, filtro_meses, filtro_descricao, filtro_fonte, showPagos, filtro_categoria } = filters;
 
         if (filtro_meses) {
             const selectedMonths = filtro_meses.split(";");
@@ -134,6 +136,13 @@ export class RegistroFilterService implements RegistroFilterInPort {
             );
         }
 
+        if (filtro_categoria) {
+            const term = filtro_categoria.toLowerCase();
+            result = result.filter(({ categoria }) =>
+                (categoria || "").toLowerCase().includes(term)
+            );
+        }
+
         if (!showPagos) {
             result = result.filter(({ ehPago }) => !ehPago);
         }
@@ -147,5 +156,22 @@ export class RegistroFilterService implements RegistroFilterInPort {
 
     getFinanceService(): FinanceService {
         return new FinanceService(this.getFiltered());
+    }
+
+
+    obterTotalSobreSalario(mes: string, ano: string): number {
+        const financeiro = new FinanceService(this.applyFiltering(this.registros$.getValue(), {
+            filtro_meses: mes,
+            filtro_ano: ano,
+            filtro_descricao: "",
+            filtro_fonte: "",
+            showPagos: false,
+            filtro_categoria: ""
+        }));
+        const totalSalario = financeiro.obterTotalSalario();
+
+        const despesas = new FinanceService(this.getFiltered());
+        const totalDespesas = despesas.obterMinhasDespesas();
+        return (100 * (Number(totalDespesas) / Number(-1 * totalSalario)));
     }
 }

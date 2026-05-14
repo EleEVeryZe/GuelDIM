@@ -2,7 +2,7 @@ import { Registro } from "../entities/Registro";
 import moment from 'moment';
 
 export class FinanceService {
-  constructor(private data: Registro[]) {}
+  constructor(private data: Registro[]) { }
 
   containsSalario(descricao: string): boolean {
     const descr = descricao?.toLowerCase().trim();
@@ -79,4 +79,6 @@ export class FinanceService {
       .filter((x) => !this.containsSalario(x.descricao))
       .reduce((a, c) => a + Math.abs(Number(c.valor)), 0);
   }
+
+  
 }

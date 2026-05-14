@@ -32,7 +32,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
@@ -122,28 +122,16 @@ export default function MainTable() {
     showPagos: true,
   });
 
-  const porcentagemCompra = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow);
-  }, [newRow, useCase]);
-
-  const porcentagemSemanal = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow);
-  }, [newRow, useCase]);
-
-  const catFixas = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas");
-  }, [filteredRows, useCase]);
-
-  const catLazer = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer");
-  }, [filteredRows, useCase]);
-
-  const catVariaveis = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis");
-  }, [filteredRows, useCase]);
-
-  const catPoupanca = useMemo(() => {
-    return useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca");
+  const analiseDeFiltro = useCallback(() => {
+    return {
+      catPoupanca: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca"),
+      catVariaveis: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"),
+      catLazer: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer"),
+      catFixas: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"),
+      porcentagemSemanal: useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow),
+      porcentagemCompra: useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow),
+      catPorcentagemSalario: filtros.filtro_meses && useCase.registroFilterService.obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
+    }
   }, [filteredRows, useCase]);
 
   const financialSummary = useMemo(() => {
@@ -157,7 +145,6 @@ export default function MainTable() {
       somaDespesasAbsolutas: financeService.obterSomaDespesasAbsolutas(),
     };
   }, [filteredRows, useCase]);
-  // ==========================================
 
   const formatCategoria = (categoria: string | null | undefined): string => {
     if (!categoria) return "";
@@ -238,7 +225,7 @@ export default function MainTable() {
         />
       );
 
-    if (type === "data") return dayjs(row[propertyName]).format("DD/MM/YYYY");
+    if (type === "data") return dayjs(row[propertyName]).format("DD/MM/YY");
 
     if (type === "number") return parseFloat(row[propertyName]).toFixed(2);
 
@@ -542,10 +529,10 @@ export default function MainTable() {
                   {newRow.valor * newRow.qtdParc}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do Total: {porcentagemCompra}
+                  % do Total: {analiseDeFiltro().porcentagemCompra}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do total Semanal: {porcentagemSemanal}
+                  % do total Semanal: {analiseDeFiltro().porcentagemSemanal}
                 </TableCell>
               </Box>
             </Box>
@@ -576,10 +563,11 @@ export default function MainTable() {
                   <TableCell colSpan={11}>
                     <Box display="block" justifyContent="space-around" flexWrap="wrap">
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Despesas fixas(35%): {catFixas}</span>
-                        <span>Lazer(30%): {catLazer}</span>
-                        <span>Despesas variáveis(15%): {catVariaveis}</span>
-                        <span>Poupança(20%): {catPoupanca}</span>
+                        <span>Despesas fixas(35%): {analiseDeFiltro().catFixas}</span>
+                        <span>Lazer(30%): {analiseDeFiltro().catLazer}</span>
+                        <span>Despesas variáveis(15%): {analiseDeFiltro().catVariaveis}</span>
+                        <span>Poupança(20%): {analiseDeFiltro().catPoupanca}</span>
+                        <span>% do Salario: {analiseDeFiltro().catPorcentagemSalario}%</span>
                       </Box>
 
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
@@ -593,7 +581,7 @@ export default function MainTable() {
                       <Box>
                         {
                           lastUpdated &&
-                          <span style={{marginRight: 45}}>Atualizado: {`${lastUpdated.descricao.slice(0, 10)} - ${dayjs(lastUpdated.dtEfetiva).format('HH:mm DD-MM-YYYY')} - R$${lastUpdated.valor}`}</span>
+                          <span style={{ marginRight: 45 }}>Atualizado: {`${lastUpdated.descricao.slice(0, 10)} - ${dayjs(lastUpdated.dtEfetiva).format('HH:mm DD-MM-YYYY')} - R$${lastUpdated.valor}`}</span>
                         }
                         {
                           lastUpdatedRef.current &&
@@ -634,6 +622,7 @@ export default function MainTable() {
                           "data"
                         )}
                       </TableCell>
+
                       <TableCell style={{ padding: 0, width: 300 }}>
                         {getEditableComponent(row, "descricao", "descricao")}
                       </TableCell>
@@ -725,6 +714,14 @@ export default function MainTable() {
                       </TableCell>
                       <TableCell style={{ width: 200 }}>
                         {getEditableComponent(row, "Comentário", "comentario")}
+                      </TableCell>
+                      <TableCell style={{ padding: 0, width: 100 }}>
+                        {getEditableComponent(
+                          row,
+                          "dtEfetiva",
+                          "dtEfetiva",
+                          "data"
+                        )}
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
                         {
