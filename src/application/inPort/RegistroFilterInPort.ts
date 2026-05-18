@@ -1,21 +1,16 @@
 import { Observable } from "rxjs";
-import { Registro } from "@/domain/entities/Registro";
+import { IItemBase } from "@/interfaces/baseItem";
 
-export interface RegistroFilterInPort {
+export interface ItemBaseFilterInPort {
     /**
      * Retrieves the current snapshot of filtered Registro items synchronously.
      */
-    getFiltered(): Registro[];
+    getFiltered(): IItemBase[];
 
     /**
      * Returns an Observable stream that emits the updated list of 
      * filtered Registro items whenever the dataset or filters change.
      */
-    getFiltered$(): Observable<Registro[]>;
+    getFiltered$(): Observable<IItemBase[]>;
 
-    /**
-     * Triggers a filtering action by a raw string input.
-     * Typically maps to a search term matching descriptions or names.
-     */
-    filterBy(filter: string): void;
 }

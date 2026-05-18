@@ -1,8 +1,8 @@
-import { RegistroRepository } from "../../application/outPort/RegistroRepository";
+import { ItemBaseRepository } from "../../application/outPort/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
 import localData from './../../../public/data.json';
 
-export class LocalRegistroRepository implements RegistroRepository {
+export class LocalRegistroRepository implements ItemBaseRepository<Registro> {
     static fileIdVlr = "file-01";
     private static instance: LocalRegistroRepository;
     data: Registro[];

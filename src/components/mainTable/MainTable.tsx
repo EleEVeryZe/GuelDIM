@@ -124,18 +124,18 @@ export default function MainTable() {
 
   const analiseDeFiltro = useCallback(() => {
     return {
-      catPoupanca: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("poupanca"),
-      catVariaveis: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"),
-      catLazer: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("lazer"),
-      catFixas: useCase.registroFilterService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"),
-      porcentagemSemanal: useCase.registroFilterService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow),
-      porcentagemCompra: useCase.registroFilterService.getFinanceService().obterPorcentagemDaCompra(newRow),
-      catPorcentagemSalario: filtros.filtro_meses && useCase.registroFilterService.obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
+      catPoupanca: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("poupanca"),
+      catVariaveis: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"),
+      catLazer: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("lazer"),
+      catFixas: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"),
+      porcentagemSemanal: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow),
+      porcentagemCompra: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemDaCompra(newRow),
+      catPorcentagemSalario: filtros.filtro_meses && useCase.itemFilterBaseService.obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
     }
   }, [filteredRows, useCase]);
 
   const financialSummary = useMemo(() => {
-    const financeService = useCase.registroFilterService.getFinanceService();
+    const financeService = useCase.itemFilterBaseService.getFinanceService();
     return {
       restante: financeService.obterRestante(),
       totalInvestimento: financeService.obterTotalInvestimento(),
@@ -168,7 +168,7 @@ export default function MainTable() {
   useEffect(() => {
     const subscription = useCase.getFiltered$().subscribe((filteredData) => {
       useCase.getLastUpdate().then((lastUpdated: Registro) => lastUpdatedRef.current = lastUpdated)
-      setLastUpdated(useCase.registroFilterService.getLastUpdate());
+      setLastUpdated(useCase.itemFilterBaseService.getLastUpdate());
       setFilteredRows(filteredData);
     });
     return () => subscription.unsubscribe();
@@ -447,7 +447,7 @@ export default function MainTable() {
                         ...newRow,
                         valor:
                           newRow.descricao.indexOf(":") !== -1 ||
-                            useCase.registroFilterService.getFinanceService().containsSalario(newRow.descricao)
+                            useCase.itemFilterBaseService.getFinanceService().containsSalario(newRow.descricao)
                             ? -1 * parseFloat(e.target.value.replace(",", "."))
                             : parseFloat(e.target.value.replace(",", ".")),
                       })

@@ -1,10 +1,13 @@
 import { IIntencaoCompra, IProduto, ICotacao, IItemEfetivado, StatusItem } from "./../../interfaces/intencao-compra";
+import { IItemBase } from "@/interfaces/baseItem"
 
-export class IntencaoCompra implements IIntencaoCompra {
+export class IntencaoCompra implements IItemBase, IIntencaoCompra {
     public id: string;
     public produto: IProduto;
     public cotacoes: ICotacao[];
     public efetivados: IItemEfetivado[];
+    idComum: string;
+    dtEfetiva: string;
 
     constructor(id: string, produto: IProduto) {
         this.id = id;

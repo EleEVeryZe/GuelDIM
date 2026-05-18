@@ -1,11 +1,12 @@
 import { BehaviorSubject, Observable, combineLatest } from "rxjs";
 import { map } from "rxjs/operators";
 import dayjs from "dayjs";
-import { RegistroFilterInPort } from "@/application/inPort/RegistroFilterInPort";
 import { Registro } from "../entities/Registro";
 import { FinanceService } from "./FinanceService";
+import { ItemFilterBaseService } from "./ItemFilterBaseService";
+import { IItemBaseFilter } from "@/interfaces/baseItem";
 
-export interface FilterState {
+export interface FilterState extends IItemBaseFilter {
     filtro_ano: string;
     filtro_meses: string;
     filtro_descricao: string;
@@ -14,21 +15,19 @@ export interface FilterState {
     filtro_categoria: string;
 }
 
-export class RegistroFilterService implements RegistroFilterInPort {
+export class RegistroFilterService extends ItemFilterBaseService<Registro> {
     private readonly registros$ = new BehaviorSubject<Registro[]>([]);
-
-    private readonly filters$ = new BehaviorSubject<FilterState>({
-        filtro_ano: dayjs().format("YYYY"),
-        filtro_meses: "",
-        filtro_descricao: "",
-        filtro_fonte: "",
-        showPagos: true,
-        filtro_categoria: "",
-    });
-
     private readonly filteredRegistros$: Observable<Registro[]>;
 
     constructor(initialData: Registro[] = []) {
+        super(initialData, new BehaviorSubject<FilterState>({
+            filtro_ano: dayjs().format("YYYY"),
+            filtro_meses: "",
+            filtro_descricao: "",
+            filtro_fonte: "",
+            showPagos: true,
+            filtro_categoria: "",
+        }))
         this.registros$.next(initialData);
 
         this.filteredRegistros$ = combineLatest([this.registros$, this.filters$]).pipe(
@@ -92,11 +91,7 @@ export class RegistroFilterService implements RegistroFilterInPort {
         return this.applyFiltering(this.registros$.getValue(), filtersWithoutMonth);
     }
 
-    filterBy(filter: string): void {
-        this.updateFilters({ filtro_descricao: filter });
-    }
-
-    private applyFiltering(registros: Registro[], filters: FilterState): Registro[] {
+    protected doFilter(registros: Registro[], filters: FilterState): Registro[] {
         if (!registros || registros.length === 0) return [];
 
         let result = [...registros];

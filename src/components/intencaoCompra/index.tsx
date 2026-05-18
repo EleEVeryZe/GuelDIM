@@ -1,5 +1,5 @@
 import React from "react";
-import { IntencaoCompraList } from "./asd";
+import { IntencaoCompraList } from "./IntencaoCompraList";
 
 const IntencaoCompra = () => {
   return <IntencaoCompraList />;

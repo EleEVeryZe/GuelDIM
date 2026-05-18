@@ -1,18 +1,17 @@
 import { Dayjs } from "dayjs";
+import { IItemBase } from "./baseItem";
 
-export interface Registro {
+export interface Registro extends IItemBase {
     id: string;
     dtCorrente: Dayjs;
     descricao: string;
     valor: number;
-    idComum?: string;
     fonte: string;
     categoria: string | null;
     qtdParc: number;
     parcelaAtual: number;
     comentario: string;
     ehPago: boolean;
-    dtEfetiva?: string;
 }
 
 export interface Investment {

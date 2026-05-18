@@ -1,7 +1,7 @@
 import { IGerenciarIntencaoCompraUseCase, IIntencaoCompraRepository } from '@/application/outPort/IGerenciarIntencaoCompraUseCase';
 import { IntencaoCompra } from '../entities/intencao-compra';
 import {
-    EfetivarCompraParcialInput,
+    ICompra,
     EfetivarCompraParcialOutput,
     RegistrarCotacaoInput,
     RegistrarVendaInput
@@ -39,7 +39,7 @@ export class GerenciarIntencaoCompraUseCase implements IGerenciarIntencaoCompraU
     /**
      * Divide a cotação gerando os itens físicos no estoque
      */
-    public async efetivarCompraParcial(input: EfetivarCompraParcialInput): Promise<EfetivarCompraParcialOutput> {
+    public async efetivarCompraParcial(input: ICompra): Promise<EfetivarCompraParcialOutput> {
         const intencao = await this.obterIntencaoOuFalhar(input.intencaoId);
 
         intencao.efetivarCompraParcial(

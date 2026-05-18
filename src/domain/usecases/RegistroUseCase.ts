@@ -1,21 +1,21 @@
-import { RegistroRepository } from "../../application/outPort/RegistroRepository";
+import { ItemBaseRepository } from "../../application/outPort/RegistroRepository";
 import { Observable } from "rxjs";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 import { Registro } from "../entities/Registro";
+import { ItemBaseUseCase } from "./ItemBaseUseCase";
+import { IItemBaseFilter } from "@/interfaces/baseItem";
 import { RegistroFilterService } from "../services/RegistroFilterService";
 
-export class RegistroUseCase {
-  registroFilterService: RegistroFilterService;
-
-  constructor(private repository: RegistroRepository) {
-    this.registroFilterService = new RegistroFilterService([]);
+export class RegistroUseCase extends ItemBaseUseCase<Registro> {
+  constructor(readonly repository: ItemBaseRepository<Registro>) {
+    super(repository, new RegistroFilterService([]));
     this.init();
   }
 
   async init() {
     const registros = await this.repository.getAll();
-    this.registroFilterService.setSourceData(registros);
+    this.itemFilterBaseService.setSourceData(registros);
   }
 
   getLastUpdate(): Promise<Registro> {
@@ -23,16 +23,16 @@ export class RegistroUseCase {
   }
 
   getFiltered$(): Observable<Registro[]> {
-    return this.registroFilterService.getFiltered$();
+    return this.itemFilterBaseService.getFiltered$();
   }
 
-  updateFilters(filters: Partial<{ filtro_ano: string; filtro_meses: string; filtro_descricao: string; filtro_fonte: string; showPagos: boolean, filtro_categoria: string }>): void {
-    this.registroFilterService.updateFilters(filters);
+  updateFilters(filters: IItemBaseFilter): void {
+    this.itemFilterBaseService.updateFilters(filters);
   }
 
   async getAll(): Promise<Registro[]> {
     const registros = await this.repository.getAll();
-    this.registroFilterService.setSourceData(registros);
+    this.itemFilterBaseService.setSourceData(registros);
     return registros;
   }
 
@@ -90,7 +90,7 @@ export class RegistroUseCase {
 
       await this.repository.add(parsedNewRow);
       const registros = await this.repository.getAll();
-      this.registroFilterService.setSourceData(registros);
+      this.itemFilterBaseService.setSourceData(registros);
       return parsedNewRow;
     } catch (err) {
       console.error(err);
@@ -101,7 +101,7 @@ export class RegistroUseCase {
   async update(registros: Registro[]): Promise<void> {
     await this.repository.update(registros);
     const updated = await this.repository.getAll();
-    this.registroFilterService.setSourceData(updated);
+    this.itemFilterBaseService.setSourceData(updated);
   }
 
   /*
@@ -119,12 +119,13 @@ export class RegistroUseCase {
     });
 
     await this.repository.updateAllIdComum(updatedRegistries);
-    this.registroFilterService.setSourceData(updatedRegistries);
+    this.itemFilterBaseService.setSourceData(updatedRegistries);
   }
 
-  async remove(registroId: string): Promise<void> {
-    await this.repository.remove(registroId);
+  async remove(id: string): Promise<Registro[]> {
+    await this.repository.remove(id);
     const updated = await this.repository.getAll();
-    this.registroFilterService.setSourceData(updated);
+    this.itemFilterBaseService.setSourceData(updated);
+    return updated;
   }
 }

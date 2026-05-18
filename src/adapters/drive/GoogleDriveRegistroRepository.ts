@@ -1,5 +1,5 @@
 import { gapi } from "gapi-script";
-import { RegistroRepository } from "../../application/outPort/RegistroRepository";
+import { ItemBaseRepository } from "../../application/outPort/RegistroRepository";
 import { Registro } from "../../domain/entities/Registro";
 import data from './../../../public/data.json';
 import dayjs from "dayjs";
@@ -9,7 +9,7 @@ import 'dayjs/locale/pt-br'
 dayjs.extend(minMax);
 dayjs.locale('pt-br');
 
-export class GoogleDriveRegistroRepository implements RegistroRepository {
+export class GoogleDriveRegistroRepository implements ItemBaseRepository<Registro> {
   static GOOGLEDRIVE_FILE_NAME = 'financeiro040520261.geldIn';
   fileId: string;
   private cachedRegistries: Registro[];

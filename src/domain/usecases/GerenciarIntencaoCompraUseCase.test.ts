@@ -1,7 +1,7 @@
 import { GerenciarIntencaoCompraUseCase } from './GerenciarIntencaoCompraUseCase';
 import { IntencaoCompra } from '../entities/intencao-compra';
 import { IIntencaoCompraRepository } from '@/application/outPort/IGerenciarIntencaoCompraUseCase';
-import { IProduto, RegistrarCotacaoInput, EfetivarCompraParcialInput, RegistrarVendaInput } from '@/interfaces/intencao-compra';
+import { IProduto, RegistrarCotacaoInput, ICompra, RegistrarVendaInput } from '@/interfaces/intencao-compra';
 
 type MockRepository = {
     buscarPorId: jest.Mock<Promise<IntencaoCompra | null>, [string]>;
@@ -90,7 +90,7 @@ describe('GerenciarIntencaoCompraUseCase', () => {
         repository.buscarPorId.mockResolvedValue(intencao);
 
         const cotacaoId = intencao.cotacoes[0].id;
-        const input: EfetivarCompraParcialInput = {
+        const input: ICompra = {
             intencaoId: 'intencao-03',
             cotacaoId,
             quantidade: 2,

@@ -1,7 +1,7 @@
 import { GerenciarIntencaoCompraUseCase } from './GerenciarIntencaoCompraUseCase';
 import { IntencaoCompra } from '../entities/intencao-compra';
 import { IIntencaoCompraRepository } from '@/application/outPort/IGerenciarIntencaoCompraUseCase';
-import { IProduto, RegistrarCotacaoInput, EfetivarCompraParcialInput, RegistrarVendaInput } from '@/interfaces/intencao-compra';
+import { IProduto, RegistrarCotacaoInput, ICompra, RegistrarVendaInput } from '@/interfaces/intencao-compra';
 
 class InMemoryIntencaoCompraRepository implements IIntencaoCompraRepository {
     private store = new Map<string, IntencaoCompra>();

@@ -1,6 +1,4 @@
-import { Registro } from "../../domain/entities/Registro";
-
-export abstract class RegistroRepository {
+export abstract class ItemBaseRepository<T> {
   abstract fileId: string;
 
   static createFile(name: string, initialContent: string): Promise<{ id: string }> {
@@ -11,10 +9,10 @@ export abstract class RegistroRepository {
     throw new Error("Método estático 'listFiles()' deve ser implementado pela subclasse.");
   }
 
-  abstract getAll(): Promise<Registro[]>;
-  abstract add(registros: Registro[]): Promise<void>;
-  abstract update(registros: Registro[]): Promise<void>;
-  abstract remove(registroId: string): Promise<void>;
-  abstract updateAllIdComum(registros: Registro[]): Promise<void>;
-  abstract getLastUpdate(): Promise<Registro>;
+  abstract getAll(): Promise<T[]>;
+  abstract add(Items: T[]): Promise<void>;
+  abstract update(Items: T[]): Promise<void>;
+  abstract remove(ItemId: string): Promise<void>;
+  abstract updateAllIdComum(Items: T[]): Promise<void>;
+  abstract getLastUpdate(): Promise<T>;
 }

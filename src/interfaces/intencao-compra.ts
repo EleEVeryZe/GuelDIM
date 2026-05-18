@@ -1,4 +1,5 @@
 import { IntencaoCompra } from "../domain/entities/intencao-compra";
+import { IItemBase } from "./baseItem";
 
 export interface IProduto {
     nome: string;
@@ -30,7 +31,7 @@ export interface IVenda {
     midias?: string[];
 }
 
-export interface IItemEfetivado {
+export interface IItemEfetivado extends IItemBase{
     codUnitario: string;
     cotacaoId: string | null;
     valorCompra: number;
@@ -38,9 +39,11 @@ export interface IItemEfetivado {
     status: StatusItem;
     venda: IVenda | null;
     midias?: string[];
+    codigosUnitarios: string[];
+    midiasPorItem?: string[][];
 }
 
-export interface IIntencaoCompra {
+export interface IIntencaoCompra extends IItemBase {
     id: string;
     produto: IProduto;
     cotacoes: ICotacao[];
@@ -63,7 +66,7 @@ export interface RegistrarVendaInput {
     midias?: string[];
 }
 
-export interface EfetivarCompraParcialInput {
+export interface ICompra extends IItemBase {
     intencaoId: string;
     cotacaoId: string;
     quantidade: number;

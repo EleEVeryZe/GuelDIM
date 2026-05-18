@@ -5,7 +5,7 @@ import { RegistroUseCase } from "../domain/usecases/RegistroUseCase";
 describe("Service", () => {
     it("Should limit range of dates", () => {
         const mockUseCase = {
-            registroFilterService: {
+            itemFilterBaseService: {
                 getFiltered: () => registrosMock
             }
         } as any;
