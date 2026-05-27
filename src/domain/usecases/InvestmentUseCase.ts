@@ -1,10 +1,11 @@
 import { Investment } from "@/interfaces/interfaces";
 import { ItemBaseUseCase } from "./ItemBaseUseCase";
 import { ItemBaseRepository } from "@/application/outPort/RegistroRepository";
+import { InvestmentFilterService } from "../services/InvestmentFilterService";
 
 export class InvestmentUseCase extends ItemBaseUseCase<Investment> {
   constructor(readonly repository: ItemBaseRepository<Investment>) {
-    super(repository, null);
+    super(repository, new InvestmentFilterService());
   }
 
   updateAllIdComum(idCommon: string, newValue: Investment): Promise<void> {

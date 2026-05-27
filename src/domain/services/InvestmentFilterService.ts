@@ -2,7 +2,7 @@ import { ItemFilterBaseService } from "./ItemFilterBaseService";
 import { IItemBaseFilter } from "@/interfaces/baseItem";
 import { Investment, InvestmentFilter } from "@/interfaces/interfaces";
 
-export class RegistroFilterService extends ItemFilterBaseService<Investment> {
+export class InvestmentFilterService extends ItemFilterBaseService<Investment> {
    constructor(initialData: Investment[] = []) {
         const initialFilters: InvestmentFilter = {
             id: '',

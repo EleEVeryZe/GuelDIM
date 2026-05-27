@@ -74,8 +74,9 @@ const initialInvestments = [] as Investment[];
 const initialOperations = [] as InvestmentOperation[];
 
 export default function InvestmentTable() {
-  const { useCase: investmentUseCase, isWritingToApi } = useInvestment();
-  const { useCase: operationUseCase } = useInvestmentOperation();
+  const { useCase: investmentUseCase, allItems: allInvestment, isWritingToApi: isWritingToInvestment, isLoadingFile: isLoadingInvestmentFile, remove: removeInvestment, add: addInvestiment, update: updateInvestment } = useInvestment();
+  const { useCase: operationUseCase, allItems: allOperation, isWritingToApi: isWritingToOperation, isLoadingFile: isLoadingOperationFile, remove: removeOperation, add: addOperation, update: updateOperation } = useInvestmentOperation();
+
 
   const [investments, setInvestments] = useState(initialInvestments);
   const [operations, setOperations] = useState(initialOperations);
@@ -88,6 +89,53 @@ export default function InvestmentTable() {
   const [totalInvestido, setTotalInvestido] = useState(0);
   const [lastUpdatedInvestment, setLastUpdatedInvestment] = useState<Investment | null>(null);
   const [loadingInvestmentId, setLoadingInvestmentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getAll();
+  }, [isWritingToInvestment, isWritingToOperation]);
+
+  useEffect(() => {
+    setInvestments(allInvestment);
+    setFilteredInvestments(allInvestment);
+    setTotalInvestido(allInvestment.reduce((total, inv) => total + inv.total, 0));
+  }, [allInvestment])
+
+  useEffect(() => {
+    setOperations(allOperation);
+  }, [allOperation])
+
+  useEffect(() => {
+    getAll();
+  }, [isLoadingInvestmentFile, isLoadingOperationFile]);
+
+  function getAll() {
+    if (isLoadingInvestmentFile || isLoadingOperationFile) return;
+    investmentUseCase.getAll();
+    operationUseCase.getAll();
+    investmentUseCase
+      .getLastUpdate()
+      .then((lastInvestment) => {
+        setLastUpdatedInvestment(lastInvestment);
+      })
+      .catch((error) => console.error("Error getting last update:", error));
+
+  }
+
+  useEffect(() => {
+    let filtered = investments.filter((inv) =>
+      inv.name.toLowerCase().includes(filterName.toLowerCase())
+    );
+    setFilteredInvestments(filtered);
+    setTotalInvestido(filtered.reduce((total, inv) => total + inv.total, 0));
+  }, [filterName]);
+
+  useEffect(() => {
+    /*
+    let active = true;
+        return () => {
+      active = false;
+    };*/
+  }, [investments, investmentUseCase]);
 
   const [newInvestment, setNewInvestment] = useState(
     createInvestmentData(
@@ -111,49 +159,10 @@ export default function InvestmentTable() {
     )
   );
 
-  useEffect(() => {
-    setTotalInvestido(investments.reduce((total, inv) => total + inv.total, 0));
-    let active = true;
-    investmentUseCase
-      .getLastUpdate()
-      .then((lastInvestment) => {
-        if (active) {
-          setLastUpdatedInvestment(lastInvestment);
-        }
-      })
-      .catch((error) => console.error("Error getting last update:", error));
-    setFilteredInvestments(
-      investments.filter((inv) =>
-        inv.name.toLowerCase().includes(filterName.toLowerCase())
-      )
-    );
-
-    return () => {
-      active = false;
-    };
-  }, [investments, filterName, investmentUseCase]);
-
-  useEffect(() => {
-    loadData(investmentUseCase.getAll, setInvestments);
-  }, [investmentUseCase]);
-
-  useEffect(() => {
-    loadData(operationUseCase.getAll, setOperations);
-  }, [operationUseCase]);
-
-  const loadData = async <T,>(getAllFn: () => Promise<T[]>, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
-    try {
-      const data = await getAllFn();
-      setData(data);
-    } catch (error) {
-      console.error("Error loading investment data:", error);
-    }
-  };
-
   const persistInvestment = async (investment: Investment, method: "POST" | "PUT") => {
     if (method === "POST") {
       try {
-        await investmentUseCase.add(investment);
+        await addInvestiment(investment);
         setShowAddInvestment(false);
         setShowAddOperation(false);
         setNewOperation(createOperationData("-1", "", 0, dayjs().locale("pt-br"), "deposit", ""));
@@ -164,7 +173,7 @@ export default function InvestmentTable() {
     } else {
       setLoadingInvestmentId(investment.id);
       try {
-        await investmentUseCase.update([investment]);
+        await updateInvestment([investment]);
         setShowAddOperation(false);
         setShowAddInvestment(false);
         setNewInvestment(createInvestmentData("-1", "", 0, dayjs().locale("pt-br"), "", ""));
@@ -180,7 +189,7 @@ export default function InvestmentTable() {
   const persistOperation = async (operation: InvestmentOperation, method: "POST" | "PUT") => {
     if (method === "POST") {
       try {
-        await operationUseCase.add(operation);
+        await addOperation(operation);
         setOperations([...operations, operation]);
 
         const investment = investments.find((i) => i.id === operation.investmentId);
@@ -190,14 +199,15 @@ export default function InvestmentTable() {
               ? investment.total + operation.amount
               : investment.total - operation.amount;
           const updatedInvestment = { ...investment, total: newTotal };
-          await persistInvestment(updatedInvestment, "PUT");
+          await
+            await persistInvestment(updatedInvestment, "PUT");
         }
       } catch (error) {
         console.error("Error persisting operation:", error);
       }
     } else {
       try {
-        await operationUseCase.update([operation]);
+        await updateOperation([operation]);
         setOperations(operations.map((r) => (r.id === operation.id ? operation : r)));
       } catch (error) {
         console.error("Error persisting operation:", error);
@@ -208,7 +218,7 @@ export default function InvestmentTable() {
   const deleteInvestment = async (id: string) => {
     setLoadingInvestmentId(id);
     try {
-      await investmentUseCase.remove(id);
+      await removeInvestment(id);
       setInvestments(investments.filter((r) => r.id !== id));
       const relatedOps = operations.filter((o) => o.investmentId === id);
       for (const op of relatedOps) {
@@ -230,6 +240,7 @@ export default function InvestmentTable() {
     const operation = operations.find(o => o.id === id);
     if (!operation) return;
 
+    removeOperation(id);
     setOperations(operations.filter((r) => r.id !== id));
 
     const investment = investments.find(i => i.id === operation.investmentId);
@@ -263,7 +274,7 @@ export default function InvestmentTable() {
     persistInvestment(investment, "POST");
   };
 
-  const addOperation = () => {
+  const addOperationHelper = () => {
     if (!newOperation.amount) {
       alert("Campo valor não pode estar vazio");
       return;
@@ -416,8 +427,7 @@ export default function InvestmentTable() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddInvestment(false)}>Cancelar</Button>
-          
-          <Button disabled={isWritingToApi} onClick={addInvestment}>Adicionar</Button>
+          <Button disabled={isWritingToInvestment} onClick={addInvestment}>Adicionar</Button>
         </DialogActions>
       </Dialog>
 
@@ -465,7 +475,7 @@ export default function InvestmentTable() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddOperation(false)}>Cancelar</Button>
-          <Button onClick={addOperation}>Adicionar</Button>
+          <Button disabled={isWritingToInvestment} onClick={addOperationHelper}>Adicionar</Button>
         </DialogActions>
       </Dialog>
 
