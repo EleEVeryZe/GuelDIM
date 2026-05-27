@@ -10,33 +10,21 @@ import { RegistroFilterService } from "../services/RegistroFilterService";
 export class RegistroUseCase extends ItemBaseUseCase<Registro> {
   constructor(readonly repository: ItemBaseRepository<Registro>) {
     super(repository, new RegistroFilterService([]));
-    this.init();
   }
 
-  async init() {
-    const registros = await this.repository.getAll();
-    this.itemFilterBaseService.setSourceData(registros);
+  getFilter(): RegistroFilterService {
+    return this.itemFilterBaseService as RegistroFilterService;
   }
 
-  getLastUpdate(): Promise<Registro> {
-    return this.repository.getLastUpdate();
-  }
-
-  getFiltered$(): Observable<Registro[]> {
-    return this.itemFilterBaseService.getFiltered$();
+  getFiltered(): Registro[] {
+    return this.itemFilterBaseService.getFiltered();
   }
 
   updateFilters(filters: IItemBaseFilter): void {
     this.itemFilterBaseService.updateFilters(filters);
   }
 
-  async getAll(): Promise<Registro[]> {
-    const registros = await this.repository.getAll();
-    this.itemFilterBaseService.setSourceData(registros);
-    return registros;
-  }
-
-  async add(newRow: Registro): Promise<Registro[]> {
+  async add(newRow: Registro): Promise<void> {
     try {
       let parsedNewRow: Registro[] = [];
       const idComum = uuidv4();
@@ -89,19 +77,10 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
           });
 
       await this.repository.add(parsedNewRow);
-      const registros = await this.repository.getAll();
-      this.itemFilterBaseService.setSourceData(registros);
-      return parsedNewRow;
     } catch (err) {
       console.error(err);
       throw err;
     }
-  }
-
-  async update(registros: Registro[]): Promise<void> {
-    await this.repository.update(registros);
-    const updated = await this.repository.getAll();
-    this.itemFilterBaseService.setSourceData(updated);
   }
 
   /*
@@ -120,12 +99,5 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
 
     await this.repository.updateAllIdComum(updatedRegistries);
     this.itemFilterBaseService.setSourceData(updatedRegistries);
-  }
-
-  async remove(id: string): Promise<Registro[]> {
-    await this.repository.remove(id);
-    const updated = await this.repository.getAll();
-    this.itemFilterBaseService.setSourceData(updated);
-    return updated;
   }
 }

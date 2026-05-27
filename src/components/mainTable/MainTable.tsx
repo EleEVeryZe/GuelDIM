@@ -32,17 +32,16 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MyBarChart from "../../chart/barChart";
 import { Registro } from "../../interfaces/interfaces";
 import { useRegistro } from "../../context/RegistroContext";
-import { GoogleDriveInvestmentRepository } from "../../adapters/drive/GoogleDriveInvestmentRepository";
-import { InvestmentUseCase } from "../../domain/usecases/InvestmentUseCase";
 import AddFonteModal from "./components/AddNewFonte";
 import Filter from "./components/Filter";
 import "./components/filter.css";
 import InvestmentTable from "./InvestmentTable";
-import IntencaoCompra from '../intencaoCompra';
+import { InvestmentContextProvider } from '@/context/InvestmentContext';
+import { InvestmentOperationContextProvider } from '@/context/InvestmentOperationContext';
 
 function createData(
   id: string,
@@ -54,7 +53,7 @@ function createData(
   qtdParc: number,
   parcelaAtual: number,
   comentario: string,
-  ehPago: boolean
+  ehPago: boolean,
 ) {
   return {
     id,
@@ -67,13 +66,16 @@ function createData(
     parcelaAtual,
     comentario,
     ehPago,
+    idComum: '',
+    dtEfetiva: ''
   };
 }
 
 const initialRows = [] as Registro[];
 
 export default function MainTable() {
-  const { useCase } = useRegistro();
+  const { useCase, allItems, filtered, isWritingToApi, update, remove } = useRegistro();
+  const [filteredRows, setFilteredRows] = useState(filtered);
   const [lastUpdated, setLastUpdated] = useState<Registro>()
   const lastUpdatedRef = useRef<Registro>();
   const [selectedItems, setSelectedItems] = useState([] as string[]);
@@ -96,8 +98,6 @@ export default function MainTable() {
       false
     )
   );
-  const [rows, setRows] = useState(initialRows);
-  const [filteredRows, setFilteredRows] = useState(initialRows);
   const [editRow, setEditRow] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -118,24 +118,48 @@ export default function MainTable() {
     filtro_ano: dayjs().format("YYYY"),
     filtro_meses: "",
     filtro_descricao: "",
+    filtro_categoria: "",
     filtro_fonte: "",
     showPagos: true,
   });
 
-  const analiseDeFiltro = useCallback(() => {
-    return {
-      catPoupanca: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("poupanca"),
-      catVariaveis: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("despesas_variaveis"),
-      catLazer: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("lazer"),
-      catFixas: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemPorCategoria("despesas_fixas"),
-      porcentagemSemanal: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemSemanalDaCompra(newRow),
-      porcentagemCompra: useCase.itemFilterBaseService.getFinanceService().obterPorcentagemDaCompra(newRow),
-      catPorcentagemSalario: filtros.filtro_meses && useCase.itemFilterBaseService.obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
+  useEffect(() => {
+    useCase.getAll();
+  }, [useCase, filtros]);
+
+  useEffect(() => {
+    useCase.updateFilters(filtros);
+  }, [filtros]);
+
+  useEffect(() => {
+    let filtroInUse = filtros;
+    if (localStorage.getItem("filtro")) {
+      filtroInUse = JSON.parse(localStorage.getItem("filtro"));
+      setFiltros(filtroInUse);
     }
-  }, [filteredRows, useCase]);
+    useCase.updateFilters(filtros);
+  }, [allItems]);
+
+  useEffect(() => {
+    setFilteredRows(filtered);
+    setLastUpdated(useCase.getFilter().getLastUpdate());
+  }, [filtered]);
+
+  const analiseDeFiltro = useMemo(() => {
+    const financeService = useCase.getFilter().getFinanceService();
+    return {
+      catPoupanca: financeService.obterPorcentagemPorCategoria("poupanca"),
+      catVariaveis: financeService.obterPorcentagemPorCategoria("despesas_variaveis"),
+      catLazer: financeService.obterPorcentagemPorCategoria("lazer"),
+      catFixas: financeService.obterPorcentagemPorCategoria("despesas_fixas"),
+      porcentagemSemanal: financeService.obterPorcentagemSemanalDaCompra(newRow),
+      porcentagemCompra: financeService.obterPorcentagemDaCompra(newRow),
+      catPorcentagemSalario: filtros.filtro_meses && useCase.getFilter().obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
+    }
+  }, [filteredRows]);
 
   const financialSummary = useMemo(() => {
-    const financeService = useCase.itemFilterBaseService.getFinanceService();
+    const financeService = useCase.getFilter().getFinanceService();
     return {
       restante: financeService.obterRestante(),
       totalInvestimento: financeService.obterTotalInvestimento(),
@@ -144,7 +168,7 @@ export default function MainTable() {
       totalSalario: financeService.obterTotalSalario(),
       somaDespesasAbsolutas: financeService.obterSomaDespesasAbsolutas(),
     };
-  }, [filteredRows, useCase]);
+  }, [filteredRows]);
 
   const formatCategoria = (categoria: string | null | undefined): string => {
     if (!categoria) return "";
@@ -164,15 +188,6 @@ export default function MainTable() {
         return categoria;
     }
   };
-
-  useEffect(() => {
-    const subscription = useCase.getFiltered$().subscribe((filteredData) => {
-      useCase.getLastUpdate().then((lastUpdated: Registro) => lastUpdatedRef.current = lastUpdated)
-      setLastUpdated(useCase.itemFilterBaseService.getLastUpdate());
-      setFilteredRows(filteredData);
-    });
-    return () => subscription.unsubscribe();
-  }, [useCase]);
 
   const add = async () => {
     try {
@@ -237,42 +252,21 @@ export default function MainTable() {
   };
 
   useEffect(() => {
-    getPersisted();
-  }, []);
-
-  useEffect(() => {
-    if (localStorage.getItem("filtro"))
-      handleFilterChange(JSON.parse(localStorage.getItem("filtro")));
-  }, [isLoading]);
-
-  const getPersisted = async () => {
     setIsLoading(true);
     try {
-      const rows = await useCase.getAll();
-      if (!rows || rows.length == 0) return;
+      useCase.getLastUpdate().then((lastUpdated: Registro) => lastUpdatedRef.current = lastUpdated)
 
-      setRows(rows);
 
-      const investmentRepository = new GoogleDriveInvestmentRepository();
-      const investmentUseCase = new InvestmentUseCase(investmentRepository);
-      const invFileId = await investmentUseCase.createOrOpenInvestmentFile();
-      setInvestmentFileId(invFileId);
+      //const investmentRepository = new GoogleDriveInvestmentRepository();
+      //const investmentUseCase = new InvestmentUseCase(investmentRepository);
+      //const invFileId = await investmentUseCase.createOrOpenInvestmentFile();
+      //setInvestmentFileId(invFileId);
     } catch (err) {
       console.error(JSON.stringify(err));
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const deleteRow = async (id: string) => {
-    await useCase.remove(id);
-
-    let contador = 1;
-    while (contador < 10) {
-      console.log(contador);
-      contador++;
-    }
-  };
+  }, []);
 
   const insertOrRemoveSelectedItems = (isInsert: boolean, items: string[]) => {
     if (isInsert) setSelectedItems([...selectedItems, ...items]);
@@ -296,11 +290,15 @@ export default function MainTable() {
           .map((filtered) => ({ ...filtered, ehPago: isPagar }));
 
         await useCase.update(modifiedItems);
+        setFilteredRows(useCase.getFiltered());
+        setIsPaying({ loading: false });
       };
 
       const executarIndividual = async () => {
         const updatedRow = { ...row, ehPago: !row.ehPago };
         await useCase.update([updatedRow]);
+        setFilteredRows(useCase.getFiltered());
+        setIsPaying({ loading: false });
       };
 
       if (row) await executarIndividual();
@@ -311,13 +309,7 @@ export default function MainTable() {
       );
       console.error(err);
     } finally {
-      setIsPaying({ loading: false });
     }
-  };
-
-  const handleFilterChange = (newFiltros: typeof filtros) => {
-    setFiltros(newFiltros);
-    useCase.updateFilters(newFiltros);
   };
 
   return (
@@ -329,17 +321,19 @@ export default function MainTable() {
 
       {currentTab === 0 && (
         <>
-          <MyBarChart
-            useCase={useCase}
-            setFilteredMonth={(newVlr) => {
-              const newFiltro = {
-                ...filtros,
-                filtro_meses: newVlr,
-              };
-              handleFilterChange(newFiltro);
-              localStorage.setItem("filtro", JSON.stringify(newFiltro));
-            }}
-          />
+          {
+            filtered && filtered.length &&
+            <MyBarChart
+              useCase={useCase}
+              setFilteredMonth={(newVlr) => {
+                const newFiltro = {
+                  ...filtros,
+                  filtro_meses: newVlr,
+                };
+                setFiltros(newFiltro);
+              }}
+            />
+          }
           <Fab
             onClick={() => setShowAddOrUpdateComponent(!showAddOrUpdateComponent)}
             color="primary"
@@ -353,7 +347,7 @@ export default function MainTable() {
             <AddIcon />
           </Fab>
           <Filter
-            setFiltros={handleFilterChange}
+            setFiltros={setFiltros}
             filtros={filtros}
             fonteList={fonteList}
             setModalOpen={setModalOpen}
@@ -447,7 +441,7 @@ export default function MainTable() {
                         ...newRow,
                         valor:
                           newRow.descricao.indexOf(":") !== -1 ||
-                            useCase.itemFilterBaseService.getFinanceService().containsSalario(newRow.descricao)
+                            useCase.getFilter().getFinanceService().containsSalario(newRow.descricao)
                             ? -1 * parseFloat(e.target.value.replace(",", "."))
                             : parseFloat(e.target.value.replace(",", ".")),
                       })
@@ -529,10 +523,10 @@ export default function MainTable() {
                   {newRow.valor * newRow.qtdParc}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do Total: {analiseDeFiltro().porcentagemCompra}
+                  % do Total: {analiseDeFiltro.porcentagemCompra}
                 </TableCell>
                 <TableCell colSpan={2}>
-                  % do total Semanal: {analiseDeFiltro().porcentagemSemanal}
+                  % do total Semanal: {analiseDeFiltro.porcentagemSemanal}
                 </TableCell>
               </Box>
             </Box>
@@ -563,11 +557,11 @@ export default function MainTable() {
                   <TableCell colSpan={11}>
                     <Box display="block" justifyContent="space-around" flexWrap="wrap">
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Despesas fixas(35%): {analiseDeFiltro().catFixas}</span>
-                        <span>Lazer(30%): {analiseDeFiltro().catLazer}</span>
-                        <span>Despesas variáveis(15%): {analiseDeFiltro().catVariaveis}</span>
-                        <span>Poupança(20%): {analiseDeFiltro().catPoupanca}</span>
-                        <span>% do Salario: {analiseDeFiltro().catPorcentagemSalario}%</span>
+                        <span>Despesas fixas(35%): {analiseDeFiltro.catFixas}</span>
+                        <span>Lazer(30%): {analiseDeFiltro.catLazer}</span>
+                        <span>Despesas variáveis(15%): {analiseDeFiltro.catVariaveis}</span>
+                        <span>Poupança(20%): {analiseDeFiltro.catPoupanca}</span>
+                        <span>% do Salario: {analiseDeFiltro.catPorcentagemSalario}%</span>
                       </Box>
 
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
@@ -725,7 +719,7 @@ export default function MainTable() {
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
                         {
-                          isUpdating ?
+                          isUpdating && editRow === row.id ?
                             <CircularProgress
                               style={{ width: "25px", height: "25px" }}
                             />
@@ -743,14 +737,22 @@ export default function MainTable() {
                         }
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
-                        <ModeEditIcon
-                          onClick={async () => {
-                            if (editRow === row.id) {
-                              await useCase.update([row]);
-                              setEditRow("");
-                            } else setEditRow(row.id);
-                          }}
-                        />
+                        {
+                          isWritingToApi && editRow === row.id ?
+                            < CircularProgress
+                              style={{ width: "25px", height: "25px" }}
+                            />
+                            :
+                            <ModeEditIcon
+                              onClick={async () => {
+                                if (editRow === row.id) {
+                                  await update([row]);
+                                  setEditRow("");
+                                } else setEditRow(row.id);
+                              }}
+                            />
+
+                        }
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
                         {isPaying.loading && isPaying.id === row.id ? (
@@ -766,14 +768,24 @@ export default function MainTable() {
                         )}
                       </TableCell>
                       <TableCell style={{ width: 40 }}>
-                        <CloseIcon
-                          onClick={() => {
-                            deleteRow(row.id);
-                            setFilteredRows(
-                              filteredRows.filter((reg) => row.id != reg.id)
-                            );
-                          }}
-                        />
+                        {
+                          isWritingToApi && editRow === row.id ?
+                            < CircularProgress
+                              style={{ width: "25px", height: "25px" }}
+                            />
+                            :
+                            <CloseIcon
+                              onClick={async () => {
+                                setEditRow(row.id)
+                                await remove(row.id);
+                                setFilteredRows(
+                                  filteredRows.filter((reg) => row.id != reg.id)
+                                );
+                                setEditRow('')
+                              }}
+                            />
+                        }
+
                       </TableCell>
                     </TableRow>
                   ))
@@ -783,14 +795,14 @@ export default function MainTable() {
           </TableContainer>
           <AddFonteModal
             isOpenFromOutside={isModalOpen}
-            registros={rows}
+            registros={allItems}
             outsideFonteList={fonteList}
             setOutsideFonteList={setFonteList}
           />
         </>
       )}
 
-      {currentTab === 1 && investmentFileId && <InvestmentTable fileId={investmentFileId} />}
+      {currentTab === 1 && investmentFileId && <InvestmentContextProvider><InvestmentOperationContextProvider><InvestmentTable /></InvestmentOperationContextProvider></InvestmentContextProvider>}
     </div>
   );
 }

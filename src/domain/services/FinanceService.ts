@@ -20,11 +20,11 @@ export class FinanceService {
   }
 
   obterPorcentagemPorCategoria(categoria: string): string {
-    const totalSalario = Math.abs(this.obterTotalSalario());
-    if (totalSalario === 0) return "0%";
+    let total = Math.abs(this.obterTotalSalario());
+    if (total === 0) total = Math.abs(this.obterMinhasDespesas());
 
     const totalCategoria = this.obterTotalPorCategoria(categoria);
-    return ((100 * totalCategoria) / totalSalario).toFixed(2);
+    return `${((100 * totalCategoria) / total).toFixed(2)}% (R$${totalCategoria.toFixed(2)})`;
   }
 
   obterTotalSalario(): number {

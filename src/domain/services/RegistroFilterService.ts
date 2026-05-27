@@ -1,5 +1,3 @@
-import { BehaviorSubject, Observable, combineLatest } from "rxjs";
-import { map } from "rxjs/operators";
 import dayjs from "dayjs";
 import { Registro } from "../entities/Registro";
 import { FinanceService } from "./FinanceService";
@@ -16,82 +14,29 @@ export interface FilterState extends IItemBaseFilter {
 }
 
 export class RegistroFilterService extends ItemFilterBaseService<Registro> {
-    private readonly registros$ = new BehaviorSubject<Registro[]>([]);
-    private readonly filteredRegistros$: Observable<Registro[]>;
 
     constructor(initialData: Registro[] = []) {
-        super(initialData, new BehaviorSubject<FilterState>({
+        const initialFilters: FilterState = {
             filtro_ano: dayjs().format("YYYY"),
             filtro_meses: "",
             filtro_descricao: "",
             filtro_fonte: "",
             showPagos: true,
             filtro_categoria: "",
-        }))
-        this.registros$.next(initialData);
+        };
 
-        this.filteredRegistros$ = combineLatest([this.registros$, this.filters$]).pipe(
-            map(([registros, filters]) => this.applyFiltering(registros, filters))
-        );
-    }
+        super(initialData, initialFilters);
 
-    setSourceData(data: Registro[]): void {
-        this.registros$.next(data);
-    }
-
-    updateFilters(partialFilters: Partial<FilterState>): void {
-        this.filters$.next({
-            ...this.filters$.getValue(),
-            ...partialFilters,
-        });
-    }
-
-    getFiltered$(): Observable<Registro[]> {
-        return this.filteredRegistros$;
-    }
-
-    getLastUpdate() {
-        const regs = this.getFiltered();
-
-        if (!regs || regs.length === 0) {
-            return null;
-        }
-
-        const latestRecord = regs.reduce((latest, current) => {
-            if (!current.dtEfetiva) return latest;
-
-            const currentDate = dayjs(current.dtEfetiva);
-
-            if (!currentDate.isValid()) return latest;
-
-            if (!latest) return current;
-
-            const latestDate = dayjs(latest.dtEfetiva);
-
-            if (currentDate.isAfter(latestDate)) {
-                return current;
-            }
-
-            return latest;
-        }, null);
-
-        return latestRecord;
-    }
-
-
-    getFiltered(): Registro[] {
-        let latest: Registro[] = [];
-        this.filteredRegistros$.subscribe((val) => (latest = val)).unsubscribe();
-        return latest;
+        this.allItems = initialData;
+        this.filters = initialFilters;
     }
 
     getFilteredWithoutMonthFilter(): Registro[] {
-        const currentFilters = this.filters$.getValue();
-        const filtersWithoutMonth = { ...currentFilters, filtro_meses: "" };
-        return this.applyFiltering(this.registros$.getValue(), filtersWithoutMonth);
+        const filtersWithoutMonth = { ...this.filters, filtro_meses: "" };
+        return this.doFilter(this.allItems, filtersWithoutMonth);
     }
 
-    protected doFilter(registros: Registro[], filters: FilterState): Registro[] {
+    protected doFilter(registros: Registro[], filters: Partial<FilterState>): Registro[] {
         if (!registros || registros.length === 0) return [];
 
         let result = [...registros];
@@ -153,9 +98,8 @@ export class RegistroFilterService extends ItemFilterBaseService<Registro> {
         return new FinanceService(this.getFiltered());
     }
 
-
     obterTotalSobreSalario(mes: string, ano: string): number {
-        const financeiro = new FinanceService(this.applyFiltering(this.registros$.getValue(), {
+        const financeiro = new FinanceService(this.doFilter(this.allItems, {
             filtro_meses: mes,
             filtro_ano: ano,
             filtro_descricao: "",

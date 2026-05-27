@@ -1,55 +1,64 @@
 import { ItemBaseFilterInPort } from "@/application/inPort/RegistroFilterInPort";
 import { IItemBase, IItemBaseFilter } from "@/interfaces/baseItem";
 import dayjs from "dayjs";
-import { BehaviorSubject, combineLatest, map, Observable } from "rxjs";
+import { Observable } from "rxjs";
+
+type Listener = () => void;
 
 export abstract class ItemFilterBaseService<T extends IItemBase> implements ItemBaseFilterInPort {
-    private readonly allItems$ = new BehaviorSubject<T[]>([]);
-    private readonly filtered$: Observable<T[]>;
+    private listeners = new Set<Listener>();
 
-    constructor(initialData: T[], readonly filters$: BehaviorSubject<IItemBaseFilter>) {
-        this.allItems$.next(initialData);
+    allItems: T[] = [];
+    filtered: T[] = [];
+    protected filters: IItemBaseFilter;
 
-        this.filtered$ = combineLatest([this.allItems$, this.filters$]).pipe(
-            map(([registros, filters]) => this.applyFiltering(registros, filters))
-        );
+    constructor(initialData: T[], initialFilters: IItemBaseFilter) {
+        this.allItems = initialData;
+        this.filters = initialFilters;
     }
 
+    subscribe(listener: Listener) {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+    }
 
-    protected applyFiltering(item: T[], filters: IItemBaseFilter): T[] {
-        if (!item || item.length === 0) return [];
-        return this.doFilter(item, filters);
+    notify() {
+        this.listeners.forEach(listener => listener())
+    }
+
+    protected applyFiltering(items: T[], filters: IItemBaseFilter): T[] {
+        if (!items || items.length === 0) return [];
+        this.filtered = this.doFilter(items, filters);
+        this.notify();
+        return this.filtered;
     }
 
     getFiltered(): T[] {
-        let latest: T[] = [];
-        this.filtered$.subscribe((val) => (latest = val)).unsubscribe();
-        return latest;
-    }
-
-    getFiltered$(): Observable<T[]> {
-        return this.filtered$;
+        return this.filtered;
     }
 
     setSourceData(data: T[]): void {
-        this.allItems$.next(data);
+        this.allItems = data;
     }
+
+    getAllItems = (): T[] => this.allItems;
 
     updateFilters(partialFilters: Partial<IItemBaseFilter>): void {
-        this.filters$.next({
-            ...this.filters$.getValue(),
+        this.filters = {
+            ...this.filters,
             ...partialFilters,
-        });
+        };
+        this.applyFiltering(this.allItems, this.filters);
     }
 
-    getLastUpdate() {
+    getLastUpdate(): T | null {
         const regs = this.getFiltered();
 
         if (!regs || regs.length === 0) {
             return null;
         }
 
-        const latestRecord = regs.reduce((latest, current) => {
+        const latestRecord = regs.reduce<T | null>((latest, current) => {
             if (!current.dtEfetiva) return latest;
 
             const currentDate = dayjs(current.dtEfetiva);
@@ -70,8 +79,5 @@ export abstract class ItemFilterBaseService<T extends IItemBase> implements Item
         return latestRecord;
     }
 
-
-
-    protected abstract doFilter(item: T[], filters: IItemBaseFilter);
-
+    protected abstract doFilter(items: T[], filters: IItemBaseFilter): T[];
 }

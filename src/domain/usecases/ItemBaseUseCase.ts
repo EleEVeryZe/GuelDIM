@@ -2,18 +2,32 @@ import { ItemBaseRepository } from "@/application/outPort/RegistroRepository";
 import { ItemFilterBaseService } from "../services/ItemFilterBaseService";
 import { IItemBase } from "@/interfaces/baseItem";
 
-export abstract class ItemBaseUseCase<T extends IItemBase> {
-    constructor(readonly repository: ItemBaseRepository<T>, readonly itemFilterBaseService: ItemFilterBaseService<T>) {
+type Listener = () => void;
 
+export abstract class ItemBaseUseCase<T extends IItemBase> {
+    private listeners = new Set<Listener>();
+
+    constructor(readonly repository: ItemBaseRepository<T>, readonly itemFilterBaseService: ItemFilterBaseService<T>) { }
+
+    subscribe(listener: Listener) {
+        this.listeners.add(listener);
+        return () => this.listeners.delete(listener);
+    }
+
+    notify() {
+        this.listeners.forEach(listener => listener())
     }
 
     async getAll(): Promise<T[]> {
         const registros = await this.repository.getAll();
-        this.itemFilterBaseService.setSourceData(registros);
+        this.itemFilterBaseService.allItems = registros;
+        this.notify();
         return registros;
     }
 
-    abstract add(newRow: T): Promise<T[]>;
+    async add(item: T): Promise<void> {
+        return this.repository.add([item]);
+    }
 
     async update(registros: T[]): Promise<void> {
         await this.repository.update(registros);
@@ -28,5 +42,9 @@ export abstract class ItemBaseUseCase<T extends IItemBase> {
         const updated = await this.repository.getAll();
         this.itemFilterBaseService.setSourceData(updated);
         return updated;
+    }
+
+    getLastUpdate(): Promise<T> {
+        return this.repository.getLastUpdate();
     }
 }

@@ -1,35 +1,13 @@
-import { InvestmentOperationRepository } from "../../application/outPort/InvestmentOperationRepository";
+import { ItemBaseUseCase } from "./ItemBaseUseCase";
+import { ItemBaseRepository } from "@/application/outPort/RegistroRepository";
 import { InvestmentOperation } from "../entities/Investment";
 
-export class InvestmentOperationUseCase {
-  constructor(private repository: InvestmentOperationRepository) {}
-
-  async getAll(fileId: string): Promise<InvestmentOperation[]> {
-    return this.repository.getAll(fileId);
+export class InvestmentOperationUseCase extends ItemBaseUseCase<InvestmentOperation> {
+  constructor(readonly repository: ItemBaseRepository<InvestmentOperation>) {
+    super(repository, null);
   }
 
-  async add(fileId: string, operations: InvestmentOperation[]): Promise<void> {
-    return this.repository.add(fileId, operations);
-  }
-
-  async update(fileId: string, operations: InvestmentOperation[]): Promise<void> {
-    return this.repository.update(fileId, operations);
-  }
-
-  async remove(fileId: string, operationId: string): Promise<void> {
-    return this.repository.remove(fileId, operationId);
-  }
-
-  async createOrOpenInvestmentOperationsFile(): Promise<string> {
-    const files = await this.repository.listFiles();
-
-    const dataFile = files.find((file) => file.name === "investment-operations.geldIn");
-
-    if (dataFile?.id) {
-      return dataFile.id;
-    }
-
-    const created = await this.repository.createFile("investment-operations.geldIn", "[]");
-    return created.id;
+  updateAllIdComum(idCommon: string, newValue: InvestmentOperation): Promise<void> {
+    throw new Error("Method not implemented.");
   }
 }

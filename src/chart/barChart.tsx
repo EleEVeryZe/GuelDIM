@@ -10,9 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Registro } from "../interfaces/interfaces";
 import { ChartData } from "./chartServices";
-import { RegistroUseCase } from "../domain/usecases/RegistroUseCase";
+import { RegistroUseCase } from "@/domain/usecases/RegistroUseCase";
 
 type MonthRange = { de: number; ate: number };
 
@@ -70,13 +69,10 @@ export default function MyBarChart({ useCase, setFilteredMonth }: { useCase: Reg
   }, [useCase]);
 
   useEffect(() => {
-    const subscription = useCase.getFiltered$().subscribe(() => {
       if (!chartService.current) return;
       setProcessedData(
         chartService.current.setMonthRange(range.de, range.ate).formatData().sumValor()
       );
-    });
-    return () => subscription.unsubscribe();
   }, [useCase, range.de, range.ate]);
 
   return (

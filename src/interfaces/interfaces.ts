@@ -1,5 +1,5 @@
 import { Dayjs } from "dayjs";
-import { IItemBase } from "./baseItem";
+import { IItemBase, IItemBaseFilter } from "./baseItem";
 
 export interface Registro extends IItemBase {
     id: string;
@@ -14,7 +14,7 @@ export interface Registro extends IItemBase {
     ehPago: boolean;
 }
 
-export interface Investment {
+export interface Investment extends IItemBase {
     id: string;
     name: string;
     total: number;
@@ -23,7 +23,17 @@ export interface Investment {
     comment?: string;
 }
 
-export interface InvestmentOperation {
+export interface InvestmentFilter extends IItemBaseFilter {
+    id: string;
+    name: string;
+    total: string;
+    date_mes: string,
+    date_ano: string,
+    category?: string;
+    comment?: string;
+}
+
+export interface InvestmentOperation extends IItemBase {
     id: string;
     investmentId: string;
     amount: number;
@@ -32,6 +42,19 @@ export interface InvestmentOperation {
     comment?: string;
 }
 
+export interface InvestmentOperationFilter extends IItemBaseFilter {
+    id: string;
+    investmentId: string;
+    amount: string;
+    date: string;
+    type: string;
+    comment: string;
+    date_mes: string,
+    date_ano: string,
+
+}
+
+
 export interface ChartData {
-    
+
 }

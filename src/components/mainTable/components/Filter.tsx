@@ -66,7 +66,6 @@ const Filter = ({ setFiltros, filtros, fonteList, setModalOpen }) => {
               filtro_descricao: e.target.value,
             };
             setFiltros(newFiltro);
-
             localStorage.setItem("filtro", JSON.stringify(newFiltro));
           }}
           variant="outlined"

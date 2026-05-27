@@ -7,10 +7,4 @@ export interface ItemBaseFilterInPort {
      */
     getFiltered(): IItemBase[];
 
-    /**
-     * Returns an Observable stream that emits the updated list of 
-     * filtered Registro items whenever the dataset or filters change.
-     */
-    getFiltered$(): Observable<IItemBase[]>;
-
 }

@@ -22,6 +22,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -30,10 +31,8 @@ import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Investment, InvestmentOperation } from "../../interfaces/interfaces";
-import { GoogleDriveInvestmentRepository } from "../../adapters/drive/GoogleDriveInvestmentRepository";
-import { InvestmentUseCase } from "../../domain/usecases/InvestmentUseCase";
-import { GoogleDriveInvestmentOperationRepository } from "../../adapters/drive/GoogleDriveInvestmentOperationRepository";
-import { InvestmentOperationUseCase } from "../../domain/usecases/InvestmentOperationUseCase";
+import { useInvestment } from "@/context/InvestmentContext";
+import { useInvestmentOperation } from "@/context/InvestmentOperationContext";
 
 function createInvestmentData(
   id: string,
@@ -74,11 +73,9 @@ function createOperationData(
 const initialInvestments = [] as Investment[];
 const initialOperations = [] as InvestmentOperation[];
 
-export default function InvestmentTable({ fileId }: { fileId: string }) {
-  const investmentRepository = new GoogleDriveInvestmentRepository();
-  const investmentUseCase = new InvestmentUseCase(investmentRepository);
-  const operationRepository = new GoogleDriveInvestmentOperationRepository();
-  const operationUseCase = new InvestmentOperationUseCase(operationRepository);
+export default function InvestmentTable() {
+  const { useCase: investmentUseCase, isWritingToApi } = useInvestment();
+  const { useCase: operationUseCase } = useInvestmentOperation();
 
   const [investments, setInvestments] = useState(initialInvestments);
   const [operations, setOperations] = useState(initialOperations);
@@ -88,6 +85,9 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
   const [showAddInvestment, setShowAddInvestment] = useState(false);
   const [showAddOperation, setShowAddOperation] = useState(false);
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
+  const [totalInvestido, setTotalInvestido] = useState(0);
+  const [lastUpdatedInvestment, setLastUpdatedInvestment] = useState<Investment | null>(null);
+  const [loadingInvestmentId, setLoadingInvestmentId] = useState<string | null>(null);
 
   const [newInvestment, setNewInvestment] = useState(
     createInvestmentData(
@@ -111,117 +111,138 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
     )
   );
 
-  const [investmentFileId, setInvestmentFileId] = useState("");
-  const [operationFileId, setOperationFileId] = useState("");
-
   useEffect(() => {
-    if (fileId) {
-      loadData();
-    }
-  }, [fileId]);
-
-  useEffect(() => {
+    setTotalInvestido(investments.reduce((total, inv) => total + inv.total, 0));
+    let active = true;
+    investmentUseCase
+      .getLastUpdate()
+      .then((lastInvestment) => {
+        if (active) {
+          setLastUpdatedInvestment(lastInvestment);
+        }
+      })
+      .catch((error) => console.error("Error getting last update:", error));
     setFilteredInvestments(
       investments.filter((inv) =>
         inv.name.toLowerCase().includes(filterName.toLowerCase())
       )
     );
-  }, [investments, filterName]);
 
-  const loadData = async () => {
+    return () => {
+      active = false;
+    };
+  }, [investments, filterName, investmentUseCase]);
+
+  useEffect(() => {
+    loadData(investmentUseCase.getAll, setInvestments);
+  }, [investmentUseCase]);
+
+  useEffect(() => {
+    loadData(operationUseCase.getAll, setOperations);
+  }, [operationUseCase]);
+
+  const loadData = async <T,>(getAllFn: () => Promise<T[]>, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
     try {
-      const invFileId = await investmentUseCase.createOrOpenInvestmentFile();
-      const opFileId = await operationUseCase.createOrOpenInvestmentOperationsFile();
-
-      setInvestmentFileId(invFileId);
-      setOperationFileId(opFileId);
-
-      const invData = await investmentUseCase.getAll(invFileId);
-      const opData = await operationUseCase.getAll(opFileId);
-
-      setInvestments(invData);
-      setOperations(opData);
+      const data = await getAllFn();
+      setData(data);
     } catch (error) {
       console.error("Error loading investment data:", error);
     }
   };
 
   const persistInvestment = async (investment: Investment, method: "POST" | "PUT") => {
-    try {
-      if (method === "POST") {
-        await investmentUseCase.add(investmentFileId, [investment]);
+    if (method === "POST") {
+      try {
+        await investmentUseCase.add(investment);
+        setShowAddInvestment(false);
+        setShowAddOperation(false);
+        setNewOperation(createOperationData("-1", "", 0, dayjs().locale("pt-br"), "deposit", ""));
         setInvestments([...investments, investment]);
-      } else {
-        await investmentUseCase.update(investmentFileId, [investment]);
-        setInvestments(investments.map((r) => (r.id === investment.id ? investment : r)));
+      } catch (error) {
+        console.error("Error persisting investment:", error);
       }
-    } catch (error) {
-      console.error("Error persisting investment:", error);
+    } else {
+      setLoadingInvestmentId(investment.id);
+      try {
+        await investmentUseCase.update([investment]);
+        setShowAddOperation(false);
+        setShowAddInvestment(false);
+        setNewInvestment(createInvestmentData("-1", "", 0, dayjs().locale("pt-br"), "", ""));
+        setInvestments(investments.map((r) => (r.id === investment.id ? investment : r)));
+      } catch (error) {
+        console.error("Error persisting investment:", error);
+      } finally {
+        setLoadingInvestmentId(null);
+      }
     }
   };
 
   const persistOperation = async (operation: InvestmentOperation, method: "POST" | "PUT") => {
-    try {
-      if (method === "POST") {
-        await operationUseCase.add(operationFileId, [operation]);
+    if (method === "POST") {
+      try {
+        await operationUseCase.add(operation);
         setOperations([...operations, operation]);
 
-        // Update investment total
-        const investment = investments.find(i => i.id === operation.investmentId);
+        const investment = investments.find((i) => i.id === operation.investmentId);
         if (investment) {
-          const newTotal = operation.type === 'deposit'
-            ? investment.total + operation.amount
-            : investment.total - operation.amount;
+          const newTotal =
+            operation.type === "deposit"
+              ? investment.total + operation.amount
+              : investment.total - operation.amount;
           const updatedInvestment = { ...investment, total: newTotal };
           await persistInvestment(updatedInvestment, "PUT");
         }
-      } else {
-        await operationUseCase.update(operationFileId, [operation]);
-        setOperations(operations.map((r) => (r.id === operation.id ? operation : r)));
+      } catch (error) {
+        console.error("Error persisting operation:", error);
       }
-    } catch (error) {
-      console.error("Error persisting operation:", error);
+    } else {
+      try {
+        await operationUseCase.update([operation]);
+        setOperations(operations.map((r) => (r.id === operation.id ? operation : r)));
+      } catch (error) {
+        console.error("Error persisting operation:", error);
+      }
     }
   };
 
   const deleteInvestment = async (id: string) => {
+    setLoadingInvestmentId(id);
     try {
-      await investmentUseCase.remove(investmentFileId, id);
+      await investmentUseCase.remove(id);
       setInvestments(investments.filter((r) => r.id !== id));
-      // Also delete related operations
-      const relatedOps = operations.filter(o => o.investmentId === id);
+      const relatedOps = operations.filter((o) => o.investmentId === id);
       for (const op of relatedOps) {
-        await operationUseCase.remove(operationFileId, op.id);
-      }
-      setOperations(operations.filter(o => o.investmentId !== id));
-    } catch (error) {
-      console.error("Error deleting investment:", error);
-    }
-  };
-
-  const deleteOperation = async (id: string) => {
-    try {
-      const operation = operations.find(o => o.id === id);
-      if (operation) {
-        await operationUseCase.remove(operationFileId, id);
-        setOperations(operations.filter((r) => r.id !== id));
-
-        // Update investment total
-        const investment = investments.find(i => i.id === operation.investmentId);
-        if (investment) {
-          const newTotal = operation.type === 'deposit'
-            ? investment.total - operation.amount
-            : investment.total + operation.amount;
-          const updatedInvestment = { ...investment, total: newTotal };
-          await persistInvestment(updatedInvestment, "PUT");
+        try {
+          await operationUseCase.remove(op.id);
+          setOperations((prevOperations) => prevOperations.filter((r) => r.id !== op.id));
+        } catch (error) {
+          console.error("Error deleting related operation:", error);
         }
       }
     } catch (error) {
-      console.error("Error deleting operation:", error);
+      console.error("Error deleting investment:", error);
+    } finally {
+      setLoadingInvestmentId(null);
     }
   };
 
-  const addInvestment = async () => {
+  const deleteOperation = (id: string) => {
+    const operation = operations.find(o => o.id === id);
+    if (!operation) return;
+
+    setOperations(operations.filter((r) => r.id !== id));
+
+    const investment = investments.find(i => i.id === operation.investmentId);
+    if (investment) {
+      const newTotal = operation.type === 'deposit'
+        ? investment.total - operation.amount
+        : investment.total + operation.amount;
+      const updatedInvestment = { ...investment, total: newTotal };
+      persistInvestment(updatedInvestment, "PUT");
+    }
+  };
+
+  const addInvestment = () => {
     if (!newInvestment.name?.length) {
       alert("Campo nome não pode estar vazio");
       return;
@@ -235,14 +256,14 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
       date: newInvestment.date,
       category: newInvestment.category,
       comment: newInvestment.comment,
+      idComum: "",
+      dtEfetiva: dayjs().toISOString(),
     };
 
-    await persistInvestment(investment, "POST");
-    setShowAddInvestment(false);
-    setNewInvestment(createInvestmentData("-1", "", 0, dayjs().locale("pt-br"), "", ""));
+    persistInvestment(investment, "POST");
   };
 
-  const addOperation = async () => {
+  const addOperation = () => {
     if (!newOperation.amount) {
       alert("Campo valor não pode estar vazio");
       return;
@@ -256,11 +277,11 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
       date: newOperation.date,
       type: newOperation.type,
       comment: newOperation.comment,
+      idComum: "",
+      dtEfetiva: dayjs().toISOString()
     };
 
-    await persistOperation(operation, "POST");
-    setShowAddOperation(false);
-    setNewOperation(createOperationData("-1", "", 0, dayjs().locale("pt-br"), "deposit", ""));
+    persistOperation(operation, "POST");
   };
 
   const getEditableComponent = (
@@ -306,11 +327,11 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
             const updated = { ...row, [propertyName]: parseFloat(e.target.value) };
             setFilteredInvestments(
               filteredInvestments.map((x) => (x.id === row.id ? updated : x))
-              );
-            }}
-          />
-        );
-      }
+            );
+          }}
+        />
+      );
+    }
 
     return (
       <TextField
@@ -325,11 +346,11 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
     );
   };
 
-  const totalInvestido = investments.reduce((total, inv) => total + inv.total, 0);
 
   return (
     <div>
       <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+
         <TextField
           label="Filtrar por Nome"
           value={filterName}
@@ -395,7 +416,8 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddInvestment(false)}>Cancelar</Button>
-          <Button onClick={addInvestment}>Adicionar</Button>
+          
+          <Button disabled={isWritingToApi} onClick={addInvestment}>Adicionar</Button>
         </DialogActions>
       </Dialog>
 
@@ -511,23 +533,36 @@ export default function InvestmentTable({ fileId }: { fileId: string }) {
                   </Box>
                 </TableCell>
                 <TableCell style={{ width: 100 }}>
-                  <ModeEditIcon
-                    onClick={() => {
-                      if (editInvestment === investment.id) {
-                        setEditInvestment("");
-                        persistInvestment(investment, "PUT");
-                      } else setEditInvestment(investment.id);
-                    }}
-                  />
-                  <CloseIcon
-                    onClick={() => deleteInvestment(investment.id)}
-                  />
+                  {loadingInvestmentId === investment.id ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <>
+                      <ModeEditIcon
+                        onClick={() => {
+                          if (editInvestment === investment.id) {
+                            setEditInvestment("");
+                            persistInvestment(investment, "PUT");
+                          } else setEditInvestment(investment.id);
+                        }}
+                        sx={{ cursor: 'pointer', mr: 1 }}
+                      />
+                      <CloseIcon
+                        onClick={() => deleteInvestment(investment.id)}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+      {
+        lastUpdatedInvestment &&
+        <p>Última atualização às {dayjs(lastUpdatedInvestment.dtEfetiva).format('hh:mm DD/MM/YY')} registro: {lastUpdatedInvestment.name}</p>
+
+      }
     </div>
   );
 }

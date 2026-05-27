@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import MainPage from "../MainPage";
 import Apresentacao from "../apresentacao/apresentacao";
-import { RegistroProvider } from "../../context/RegistroContext";
+import { RegistroContextProvider, RegistroProvider } from "../../context/RegistroContext";
 import { AuthContext } from "../../context/AuthContext";
 
 const LoginGueldim: React.FC = () => {
@@ -32,11 +32,11 @@ const LoginGueldim: React.FC = () => {
 
     return (
 
-        <RegistroProvider>
+        <RegistroContextProvider>
             <section>
                 { isSignedIn ? <MainPage /> : <Apresentacao loadingAuth={loadingAuth} /> }
             </section>
-        </RegistroProvider>
+        </RegistroContextProvider>
     );
 };
 

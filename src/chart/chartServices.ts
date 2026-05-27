@@ -47,7 +47,7 @@ export class ChartData {
     }
 
     public formatData = () : { data: { [key: string]: Registro[] }, sumValor: () => Array<{ descricao: string; valor: number; valorMenosInvestimento: number; acumulado: number; }>, removeSalary: () => { [key: string]: Registro[] } } => {
-        let data = this.useCase.itemFilterBaseService.getFilteredWithoutMonthFilter();
+        let data = this.useCase.getFilter().getFilteredWithoutMonthFilter();
         if (this.monthRange) {
             const initDayJs = dayjs().subtract(this.monthRange.init, "month").startOf("month");
             const finDayJs = dayjs().add(this.monthRange.fin, "month").endOf("month");
