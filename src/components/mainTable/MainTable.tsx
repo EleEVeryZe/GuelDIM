@@ -112,7 +112,6 @@ export default function MainTable() {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
-  const [investmentFileId, setInvestmentFileId] = useState("");
 
   const [filtros, setFiltros] = useState({
     filtro_ano: dayjs().format("YYYY"),
@@ -802,7 +801,7 @@ export default function MainTable() {
         </>
       )}
 
-      {currentTab === 1 && investmentFileId && <InvestmentContextProvider><InvestmentOperationContextProvider><InvestmentTable /></InvestmentOperationContextProvider></InvestmentContextProvider>}
+      {currentTab === 1 && <InvestmentContextProvider><InvestmentOperationContextProvider><InvestmentTable /></InvestmentOperationContextProvider></InvestmentContextProvider>}
     </div>
   );
 }

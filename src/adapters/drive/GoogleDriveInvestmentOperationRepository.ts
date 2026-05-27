@@ -13,6 +13,6 @@ export class GoogleDriveInvestmentOperationRepository extends GoogleDriveReposit
   }
 
   public static async getInstance(): Promise<GoogleDriveInvestmentOperationRepository>  {
-    return new GoogleDriveInvestmentOperationRepository(await GoogleDriveRepository.getFile('investment01.geldIn'));
+    return new GoogleDriveInvestmentOperationRepository(await GoogleDriveRepository.getFile('investmentOperation01.geldIn'));
   }
 }

@@ -2,6 +2,9 @@ import { IIntencaoCompraRepository } from "@/application/outPort/IGerenciarInten
 import { IntencaoCompra } from "@/domain/entities/intencao-compra";
 
 export abstract class GraphQLIntencaoCompraRepository implements IIntencaoCompraRepository {
+  criarIntencao(intencao: IntencaoCompra): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
   
   private readonly endpoint = "https://2qqqkwumjh.execute-api.sa-east-1.amazonaws.com/default/graphql";
   //private readonly endpoint = "http://localhost:3000/graphql";

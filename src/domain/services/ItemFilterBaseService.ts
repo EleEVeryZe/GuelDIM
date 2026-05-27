@@ -1,7 +1,6 @@
 import { ItemBaseFilterInPort } from "@/application/inPort/RegistroFilterInPort";
 import { IItemBase, IItemBaseFilter } from "@/interfaces/baseItem";
 import dayjs from "dayjs";
-import { Observable } from "rxjs";
 
 type Listener = () => void;
 

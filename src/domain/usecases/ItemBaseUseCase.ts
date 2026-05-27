@@ -7,7 +7,9 @@ type Listener = () => void;
 export abstract class ItemBaseUseCase<T extends IItemBase> {
     private listeners = new Set<Listener>();
 
-    constructor(readonly repository: ItemBaseRepository<T>, readonly itemFilterBaseService: ItemFilterBaseService<T>) { }
+    constructor(readonly repository: ItemBaseRepository<T>, readonly itemFilterBaseService: ItemFilterBaseService<T>) {
+        if (!repository || !itemFilterBaseService) throw new Error('Um useCase necessariamente deve conter um repositorio e um filterService');
+     }
 
     subscribe(listener: Listener) {
         this.listeners.add(listener);

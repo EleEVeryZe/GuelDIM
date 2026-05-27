@@ -14,7 +14,7 @@ export class IntencaoCompraOutPortAdapter implements ItemBaseRepository<IIntenca
        return this.JsonIntencao.buscarTodos(); 
     }
     add(Items: IIntencaoCompra[]): Promise<void> {
-        return this.graphQl.
+        return;
     }
     update(Items: IIntencaoCompra[]): Promise<void> {
         throw new Error("Method not implemented.");

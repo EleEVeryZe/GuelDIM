@@ -44,13 +44,13 @@ export interface InvestmentOperation extends IItemBase {
 
 export interface InvestmentOperationFilter extends IItemBaseFilter {
     id: string;
-    investmentId: string;
-    amount: string;
-    date: string;
-    type: string;
-    comment: string;
-    date_mes: string,
-    date_ano: string,
+    investmentId?: string;
+    amount?: string;
+    date?: string;
+    type?: string;
+    comment?: string;
+    date_mes?: string,
+    date_ano?: string,
 
 }
 

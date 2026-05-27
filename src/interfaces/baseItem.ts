@@ -1,4 +1,5 @@
 export interface IItemBase {
+    id: any;
     idComum: string;
     dtEfetiva: string;
 }

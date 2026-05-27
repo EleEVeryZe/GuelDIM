@@ -41,7 +41,9 @@ export class JsonIntencaoCompraRepository implements IIntencaoCompraRepository {
         id: item.id,
         produto: item.produto,
         cotacoes: item.cotacoes || [],
-        efetivados: item.efetivados || []
+        efetivados: item.efetivados || [],
+        idComum: "",
+        dtEfetiva: ""
       })
     );
 

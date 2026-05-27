@@ -64,7 +64,9 @@ describe('GerenciarIntencaoCompraUseCase Integration', () => {
             quantidade: 2,
             valorCompraUnitario: 1800,
             codigosUnitarios: ['TV-001', 'TV-002'],
-            status: ''
+            status: '',
+            idComum: '',
+            dtEfetiva: ''
         });
 
         expect(efetivarResult.quantidadeEmEstoque).toBe(2);

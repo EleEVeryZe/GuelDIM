@@ -66,7 +66,11 @@ export class IntencaoCompra implements IItemBase, IIntencaoCompra {
                 dataCompra: new Date().toISOString(),
                 status: 'EM_ESTOQUE',
                 venda: null,
-                midias: midiasPorItem ? midiasPorItem[index] ?? [] : []
+                midias: midiasPorItem ? midiasPorItem[index] ?? [] : [],
+                codigosUnitarios: [],
+                idComum: "",
+                dtEfetiva: "",
+                id: undefined
             });
         }
     }
