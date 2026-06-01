@@ -11,7 +11,7 @@ export abstract class ItemBaseUseCase<T extends IItemBase> {
         if (!repository || !itemFilterBaseService) throw new Error('Um useCase necessariamente deve conter um repositorio e um filterService');
      }
 
-    subscribe(listener: Listener) {
+    protected subscribe(listener: Listener) {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     }

@@ -42,6 +42,7 @@ import "./components/filter.css";
 import InvestmentTable from "./InvestmentTable";
 import { InvestmentContextProvider } from '@/context/InvestmentContext';
 import { InvestmentOperationContextProvider } from '@/context/InvestmentOperationContext';
+import { InfoTable } from './components/InfoTable';
 
 function createData(
   id: string,
@@ -345,6 +346,8 @@ export default function MainTable() {
           >
             <AddIcon />
           </Fab>
+          <InfoTable/>
+          
           <Filter
             setFiltros={setFiltros}
             filtros={filtros}

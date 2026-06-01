@@ -1,3 +1,4 @@
+import { c } from "vite/dist/node/types.d-aGj9QkWt";
 import { Registro } from "../entities/Registro";
 import moment from 'moment';
 
@@ -7,6 +8,25 @@ export class FinanceService {
   containsSalario(descricao: string): boolean {
     const descr = descricao?.toLowerCase().trim();
     return descr === "salario" || descr === "salário";
+  }
+
+  obterTotalPorFonte(fonte: string) {
+    return this.data.filter(x => x.fonte.toLowerCase() === fonte.toLowerCase()).reduce((a, c) => (c.valor ? a + Number(c.valor) : 0), 0);
+  }
+
+  obterTotalPorFontes(): Record<string, number> {
+    const totais: Record<string, number> = {};
+
+    for (let i = 0; i < this.data.length; i++) {
+      const item = this.data[i];
+
+      if (item.fonte) {
+        const valor = item.valor ? Number(item.valor) : 0;
+        totais[item.fonte] = (Math.abs(totais[item.fonte] || 0)) + Math.abs(valor);
+      }
+    }
+
+    return totais;
   }
 
   obterTotalPorCategoria(categoria: string): number {
@@ -80,5 +100,5 @@ export class FinanceService {
       .reduce((a, c) => a + Math.abs(Number(c.valor)), 0);
   }
 
-  
+
 }
