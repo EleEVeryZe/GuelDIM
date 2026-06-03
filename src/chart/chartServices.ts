@@ -18,7 +18,7 @@ export class ChartData {
                 return {
                     descricao: mesAno,
                     valor: financeService.obterRestante(),
-                    valorMenosInvestimento: financeService.obterRestanteMenosInvestimento(),
+                    valorMenosInvestimento: financeService.obterRestanteMenosMinInvestimento(),
                     acumulado: acumulado
                 }
             }, {}

@@ -1,4 +1,4 @@
-import { Slider, Stack, Typography } from "@mui/material";
+import { TextField, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import {
   Bar,
@@ -16,31 +16,41 @@ import { RegistroUseCase } from "@/domain/usecases/RegistroUseCase";
 type MonthRange = { de: number; ate: number };
 
 function MonthRangePicker({ range, onChange }: { range: MonthRange; onChange: (next: MonthRange) => void }) {
-  const handleSliderChange = (_event: Event, value: number | number[]) => {
-    if (Array.isArray(value)) {
-      onChange({ de: value[0], ate: value[1] });
-    }
+  const handleChangeDe = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Math.max(0, Math.min(12, Number(event.target.value)));
+    onChange({ ...range, de: val });
+  };
+
+  const handleChangeAte = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Math.max(0, Math.min(12, Number(event.target.value)));
+    onChange({ ...range, ate: val });
   };
 
   return (
     <Stack spacing={2} mb={2}>
-      <Stack direction="row" spacing={4} alignItems="center">
-        <Typography variant="body2" color="textSecondary">
-          De: {range.de}
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          Até: {range.ate}
-        </Typography>
+      <Typography variant="subtitle2" color="textSecondary">
+        Filtrar Intervalo de Meses
+      </Typography>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <TextField
+          label="De (Mês)"
+          type="number"
+          size="small"
+          value={range.de}
+          onChange={handleChangeDe}
+          inputProps={{ min: 0, max: 12, step: 1 }}
+          sx={{ width: 120 }}
+        />
+        <TextField
+          label="Até (Mês)"
+          type="number"
+          size="small"
+          value={range.ate}
+          onChange={handleChangeAte}
+          inputProps={{ min: 0, max: 12, step: 1 }}
+          sx={{ width: 120 }}
+        />
       </Stack>
-      <Slider
-        value={[range.de, range.ate]}
-        onChange={handleSliderChange}
-        valueLabelDisplay="auto"
-        min={0}
-        max={12}
-        step={1}
-        marks
-      />
     </Stack>
   );
 }
@@ -85,6 +95,7 @@ export default function MyBarChart({ useCase, setFilteredMonth }: { useCase: Reg
         <BarChart
           data={processedData}
           onClick={(barChartClickData) => {
+            if (!barChartClickData || !barChartClickData.activeLabel) return;
             const actvLabel = barChartClickData.activeLabel;
             setFilteredMonth(parseInt(barChartClickData.activeLabel.substring(actvLabel.length -2, actvLabel.length)) + "")
           }}

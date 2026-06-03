@@ -148,26 +148,10 @@ export default function MainTable() {
   const analiseDeFiltro = useMemo(() => {
     const financeService = useCase.getFilter().getFinanceService();
     return {
-      catPoupanca: financeService.obterPorcentagemPorCategoria("poupanca"),
-      catVariaveis: financeService.obterPorcentagemPorCategoria("despesas_variaveis"),
-      catLazer: financeService.obterPorcentagemPorCategoria("lazer"),
-      catFixas: financeService.obterPorcentagemPorCategoria("despesas_fixas"),
       porcentagemSemanal: financeService.obterPorcentagemSemanalDaCompra(newRow),
       porcentagemCompra: financeService.obterPorcentagemDaCompra(newRow),
       catPorcentagemSalario: filtros.filtro_meses && useCase.getFilter().obterTotalSobreSalario(filtros.filtro_meses, filtros.filtro_ano).toFixed(2)
     }
-  }, [filteredRows]);
-
-  const financialSummary = useMemo(() => {
-    const financeService = useCase.getFilter().getFinanceService();
-    return {
-      restante: financeService.obterRestante(),
-      totalInvestimento: financeService.obterTotalInvestimento(),
-      restanteMenosInvestimento: financeService.obterRestanteMenosInvestimento(),
-      minhasDespesas: financeService.obterMinhasDespesas(),
-      totalSalario: financeService.obterTotalSalario(),
-      somaDespesasAbsolutas: financeService.obterSomaDespesasAbsolutas(),
-    };
   }, [filteredRows]);
 
   const formatCategoria = (categoria: string | null | undefined): string => {
@@ -321,6 +305,7 @@ export default function MainTable() {
 
       {currentTab === 0 && (
         <>
+
           {
             filtered && filtered.length &&
             <MyBarChart
@@ -346,13 +331,17 @@ export default function MainTable() {
           >
             <AddIcon />
           </Fab>
-          <InfoTable/>
-          
+
           <Filter
             setFiltros={setFiltros}
             filtros={filtros}
             fonteList={fonteList}
             setModalOpen={setModalOpen}
+          />
+
+          <InfoTable
+            setFiltros={setFiltros}
+            filtros={filtros}
           />
           <Box sx={{ display: "flex" }}>
             <Box>
@@ -559,20 +548,7 @@ export default function MainTable() {
                   <TableCell colSpan={11}>
                     <Box display="block" justifyContent="space-around" flexWrap="wrap">
                       <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Despesas fixas(35%): {analiseDeFiltro.catFixas}</span>
-                        <span>Lazer(30%): {analiseDeFiltro.catLazer}</span>
-                        <span>Despesas variáveis(15%): {analiseDeFiltro.catVariaveis}</span>
-                        <span>Poupança(20%): {analiseDeFiltro.catPoupanca}</span>
                         <span>% do Salario: {analiseDeFiltro.catPorcentagemSalario}%</span>
-                      </Box>
-
-                      <Box display="flex" justifyContent="space-between" flexWrap="wrap">
-                        <span>Restante: {financialSummary.restante.toFixed(2)}</span>
-                        <span>A ser investido: {financialSummary.totalInvestimento.toFixed(2)}</span>
-                        <span>Restante - Invest: {financialSummary.restanteMenosInvestimento.toFixed(2)}</span>
-                        <span>Minhas despesas: {financialSummary.minhasDespesas.toFixed(2)}</span>
-                        <span>Salário: {(-1 * financialSummary.totalSalario).toFixed(2)}</span>
-                        <span>Soma: {financialSummary.somaDespesasAbsolutas.toFixed(2)}</span>
                       </Box>
                       <Box>
                         {

@@ -24,7 +24,7 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
     this.itemFilterBaseService.updateFilters(filters);
   }
 
-  async add(newRow: Registro): Promise<void> {
+  getAdds(newRow: Registro): Registro[] {
     try {
       let parsedNewRow: Registro[] = [];
       const idComum = uuidv4();
@@ -76,7 +76,7 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
             comentario: ""
           });
 
-      await this.repository.add(parsedNewRow);
+      return parsedNewRow;
     } catch (err) {
       console.error(err);
       throw err;

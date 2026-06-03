@@ -2,7 +2,16 @@ import { c } from "vite/dist/node/types.d-aGj9QkWt";
 import { Registro } from "../entities/Registro";
 import moment from 'moment';
 
+export enum RESTANTE_INVESTIMENTO_TARJA {
+  TRANQUILO,
+  ALERTA,
+  PERIGOSO
+}
+
 export class FinanceService {
+  static PORCENTAGEM_INVESTIMENTO = 0.25;
+
+
   constructor(private data: Registro[]) { }
 
   containsSalario(descricao: string): boolean {
@@ -65,12 +74,43 @@ export class FinanceService {
 
   obterRestanteMenosInvestimento(): number {
     const totalSalario = this.obterTotalSalario();
-    const totalInvestimento = -0.2 * totalSalario;
+    const totalInvestimento = -FinanceService.PORCENTAGEM_INVESTIMENTO * totalSalario;
+    return Number(((-1 * totalSalario) - this.obterMinhasDespesas() - totalInvestimento).toFixed(2));
+  }
+  
+  obterRestanteMenosMinInvestimento(): number {
+    const totalSalario = this.obterTotalSalario();
+    const totalInvestimento = -(FinanceService.PORCENTAGEM_INVESTIMENTO - 0.05) * totalSalario;
     return Number(((-1 * totalSalario) - this.obterMinhasDespesas() - totalInvestimento).toFixed(2));
   }
 
   obterTotalInvestimento(): number {
-    return Number((-0.2 * this.obterTotalSalario()).toFixed(2));
+    return Number((-FinanceService.PORCENTAGEM_INVESTIMENTO * this.obterTotalSalario()).toFixed(2));
+  }
+
+  obterTotalMinimoInvestimento(): number {
+    return Number((-(FinanceService.PORCENTAGEM_INVESTIMENTO - 0.05) * this.obterTotalSalario()).toFixed(2));
+  }
+
+  obterTarjaRestante(): RESTANTE_INVESTIMENTO_TARJA {
+    const totalSalarioAbs = Math.abs(this.obterTotalSalario());
+    const livreParaGastar = this.obterRestanteMenosMinInvestimento();
+
+    if (totalSalarioAbs === 0 || livreParaGastar <= 0) {
+      return RESTANTE_INVESTIMENTO_TARJA.PERIGOSO;
+    }
+
+    const margemDisponivelPercentual = livreParaGastar / totalSalarioAbs;
+
+    if (margemDisponivelPercentual < 0.05) {
+      return RESTANTE_INVESTIMENTO_TARJA.PERIGOSO;
+    }
+
+    if (margemDisponivelPercentual < 0.15) {
+      return RESTANTE_INVESTIMENTO_TARJA.ALERTA;
+    }
+
+    return RESTANTE_INVESTIMENTO_TARJA.TRANQUILO;
   }
 
   obterPorcentagemDaCompra(compra: Registro): string {
@@ -99,6 +139,4 @@ export class FinanceService {
       .filter((x) => !this.containsSalario(x.descricao))
       .reduce((a, c) => a + Math.abs(Number(c.valor)), 0);
   }
-
-
 }
