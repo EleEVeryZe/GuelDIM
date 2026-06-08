@@ -122,10 +122,15 @@ export default function MainTable() {
     filtro_fonte: "",
     showPagos: true,
   });
+  
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    useCase.getAll();
-  }, [useCase, filtros]);
+    if (isFirstRender.current)
+      useCase.getAll();
+
+    isFirstRender.current = false;
+  }, [useCase]);
 
   useEffect(() => {
     useCase.updateFilters(filtros);

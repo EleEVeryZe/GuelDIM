@@ -54,7 +54,11 @@ export abstract class ItemBaseUseCase<T extends IItemBase> {
         return updated;
     }
 
-    getLastUpdate(): Promise<T> {
-        return this.repository.getLastUpdate();
+    getLastUpdate(): T {
+        let lastUpdated;
+        this.itemFilterBaseService.subscribe(() => {
+            lastUpdated = this.repository.getLastUpdate();
+        })
+        return lastUpdated;
     }
 }
