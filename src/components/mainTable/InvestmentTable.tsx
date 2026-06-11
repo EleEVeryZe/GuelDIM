@@ -112,13 +112,7 @@ export default function InvestmentTable() {
     if (isLoadingInvestmentFile || isLoadingOperationFile) return;
     investmentUseCase.getAll();
     operationUseCase.getAll();
-    investmentUseCase
-      .getLastUpdate()
-      .then((lastInvestment) => {
-        setLastUpdatedInvestment(lastInvestment);
-      })
-      .catch((error) => console.error("Error getting last update:", error));
-
+    setLastUpdatedInvestment(investmentUseCase.getLastUpdate());
   }
 
   useEffect(() => {
