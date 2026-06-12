@@ -32,14 +32,14 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
       const dtEfetiva = dayjs().toISOString();
       let valorTotal = newRow.valor;
 
+      const isLoan = newRow.comentario.indexOf("*") !== -1 &&
+        newRow.comentario.indexOf(":") !== -1;
+
       for (let currentParcela = 0; currentParcela < newRow.qtdParc; currentParcela++) {
         if (!newRow.descricao?.length)
           throw { message: "Campo descrição não pode estar vazio" };
 
-        if (
-          newRow.comentario.indexOf("*") !== -1 &&
-          newRow.comentario.indexOf(":") !== -1
-        ) {
+        if (isLoan) {
           const devedores = newRow.comentario.replace("*", "").split(",");
           for (let i = 0; i < devedores.length; i++) {
             const e = devedores[i];
@@ -73,7 +73,7 @@ export class RegistroUseCase extends ItemBaseUseCase<Registro> {
             idComum,
             parcelaAtual: currentParcela + 1,
             dtEfetiva,
-            comentario: ""
+            comentario: isLoan ? '' : newRow.comentario
           });
 
       return parsedNewRow;
