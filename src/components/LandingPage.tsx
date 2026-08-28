@@ -73,6 +73,8 @@ const LandingPage: React.FC = () => {
               </Stack>
 
               <Stack direction="row" spacing={1} sx={{ mt: 4, flexWrap: "wrap" }}>
+                
+
                 <Link href="https://github.com/EleEVeryZe" target="_blank" rel="noreferrer" color="inherit" underline="none">
                   <Button startIcon={<GitHubIcon />} sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.25)", border: 1 }}>GitHub</Button>
                 </Link>
@@ -82,6 +84,10 @@ const LandingPage: React.FC = () => {
                 <Link href="mailto:rodolfoeliezer93@gmail.com" color="inherit" underline="none">
                   <Button startIcon={<EmailIcon />} sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.25)", border: 1 }}>Email</Button>
                 </Link>
+                <Link href="/public/landing_page/ascii.html" target="_blank" rel="noreferrer" color="inherit" underline="none">
+                  <Button startIcon={<GitHubIcon />} sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.25)", border: 1 }}>ASCII</Button>
+                </Link>
+
               </Stack>
             </Grid>
 
