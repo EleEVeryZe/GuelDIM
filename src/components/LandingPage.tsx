@@ -63,9 +63,12 @@ const LandingPage: React.FC = () => {
                 Transformando complexidade em soluções escaláveis para equipes e produtos de alto impacto.
               </Typography>
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Button component={RouterLink} to="/app" variant="contained" size="large">
                   Entrar no App
+                </Button>
+                <Button component={RouterLink} to="/euamopdf" variant="outlined" size="large" sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.7)" }}>
+                  euAmoPdf
                 </Button>
                 <Button component="a" href="mailto:rodolfoeliezer93@gmail.com" variant="outlined" size="large" sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.7)" }}>
                   Contato
